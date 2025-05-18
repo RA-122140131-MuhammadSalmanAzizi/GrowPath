@@ -1,0 +1,76 @@
+<resources>
+    <string name="app_name">GrowPath</string>
+
+    <!-- Authentication -->
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="display_name">Display Name</string>
+    <string name="forgot_password">Forgot Password?</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="create_account">Create Account</string>
+    <string name="already_have_account">Already have an account? Login</string>
+    <string name="dont_have_account">Don\'t have an account? Register</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard">Dashboard</string>
+    <string name="welcome_back">Welcome back, %1$s</string>
+    <string name="level">Level %1$d</string>
+    <string name="xp_format">%1$d XP</string>
+    <string name="in_progress">In Progress</string>
+    <string name="not_started">Not Started</string>
+    <string name="completed">Completed</string>
+    <string name="progress_format">%1$d%% Complete</string>
+    <string name="create_roadmap">Create Roadmap</string>
+
+    <!-- Roadmap -->
+    <string name="roadmap">Roadmap</string>
+    <string name="roadmap_details">Roadmap Details</string>
+    <string name="estimated_duration">Estimated duration: %1$d days</string>
+    <string name="difficulty">Difficulty: %1$s</string>
+    <string name="no_milestones">No milestones found for this roadmap</string>
+
+    <!-- Milestone -->
+    <string name="milestone">Milestone</string>
+    <string name="milestone_details">Milestone Details</string>
+    <string name="complete_milestone">Complete Milestone</string>
+    <string name="not_completed_yet">Not completed yet</string>
+    <string name="completed_on">Completed: %1$s</string>
+    <string name="experience_points">Experience points: %1$d XP</string>
+    <string name="journal_notes">Journal Notes</string>
+    <string name="add_note">Add Note</string>
+    <string name="note_content">Note content</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="no_notes_yet">No notes yet. Add your first note by clicking the + button.</string>
+
+    <!-- Profile -->
+    <string name="profile">Profile</string>
+    <string name="edit_profile">Edit Profile</string>
+    <string name="save_changes">Save Changes</string>
+    <string name="logout">Logout</string>
+    <string name="achievements">Achievements</string>
+    <string name="joined">Joined: %1$s</string>
+    <string name="no_achievements">Complete milestones and roadmaps to earn achievements</string>
+    <string name="unlocked">Unlocked: %1$s</string>
+    <string name="locked">Locked</string>
+    <string name="change_profile_picture">Change profile picture</string>
+
+    <!-- Error Messages -->
+    <string name="error_login_failed">Login failed: %1$s</string>
+    <string name="error_registration_failed">Registration failed: %1$s</string>
+    <string name="error_invalid_email">Invalid email format</string>
+    <string name="error_invalid_password">Password must be at least 6 characters</string>
+    <string name="error_empty_name">Name cannot be empty</string>
+    <string name="error_loading_data">Failed to load data: %1$s</string>
+    <string name="error_save_failed">Failed to save changes: %1$s</string>
+
+    <!-- Success Messages -->
+    <string name="success_login">Login successful</string>
+    <string name="success_registration">Registration successful</string>
+    <string name="success_milestone_completed">Milestone completed! +%1$d XP</string>
+    <string name="success_note_added">Note added successfully</string>
+    <string name="success_profile_updated">Profile updated successfully</string>
+</resources>
+
