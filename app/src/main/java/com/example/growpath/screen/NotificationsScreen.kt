@@ -20,8 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.growpath.utils.ViewModelFactory
+import androidx.hilt.navigation.compose.hiltViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -29,7 +28,7 @@ import java.util.*
 @Composable
 fun NotificationsScreen(
     onBackClick: () -> Unit,
-    viewModel: NotificationsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: NotificationsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val dateFormat = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault())

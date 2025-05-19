@@ -22,11 +22,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.growpath.model.Achievement
 import com.example.growpath.navigation.NavGraph
-import com.example.growpath.utils.ViewModelFactory
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -35,7 +35,7 @@ import java.util.*
 fun ProfileScreen(
     onBackClick: () -> Unit,
     navController: NavController? = null,
-    viewModel: ProfileViewModel = viewModel(factory = ViewModelFactory())
+    viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     val scrollState = rememberScrollState()

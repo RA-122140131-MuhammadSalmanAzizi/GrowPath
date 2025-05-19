@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.growpath.model.Milestone
 import com.example.growpath.repository.RoadmapRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +18,8 @@ data class MilestoneState(
     val error: String? = null
 )
 
-class MilestoneViewModel(private val roadmapRepository: RoadmapRepository) : ViewModel() {
+@HiltViewModel
+class MilestoneViewModel @Inject constructor(private val roadmapRepository: RoadmapRepository) : ViewModel() {
     private val _state = MutableStateFlow(MilestoneState())
     val state: StateFlow<MilestoneState> = _state.asStateFlow()
 
