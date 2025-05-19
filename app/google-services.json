@@ -1,41 +1,41 @@
 {
   "project_info": {
-    "project_number": "123456789012",
-    "project_id": "growpath-app",
-    "storage_bucket": "growpath-app.appspot.com"
+    "project_number": "867693424498",
+    "project_id": "growpath",
+    "storage_bucket": "growpath.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789012:android:abcdef1234567890",
+        "mobilesdk_app_id": "1:867693424498:android:e70186705bf71eaf61f7eb",
         "android_client_info": {
           "package_name": "com.example.growpath"
         }
       },
       "oauth_client": [
         {
-          "client_id": "123456789012-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com",
+          "client_id": "867693424498-ddb7ogla3c8mskdrje8o1as541e6jrd1.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.growpath",
-            "certificate_hash": "1234567890abcdef1234567890abcdef12345678"
+            "certificate_hash": "0b53791713e2dad100bfcb64059f4a79735467e4"
           }
         },
         {
-          "client_id": "123456789012-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com",
+          "client_id": "867693424498-lu484k172vbdblcm3v2fikc2hhbtn5hq.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyA-EXAMPLE-KEY-REPLACE-WITH-REAL-KEY"
+          "current_key": "AIzaSyCALEN6k218WhZEobWjgUVJRRQKwL-n274"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "123456789012-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com",
+              "client_id": "867693424498-lu484k172vbdblcm3v2fikc2hhbtn5hq.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
@@ -45,4 +45,3 @@
   ],
   "configuration_version": "1"
 }
-

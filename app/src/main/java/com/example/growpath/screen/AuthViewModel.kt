@@ -1,0 +1,38 @@
+package com.example.growpath.screen
+
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+
+data class AuthState(
+    val email: String = "",
+    val password: String = "",
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val isSuccess: Boolean = false
+)
+
+class AuthViewModel : ViewModel() {
+    var state by mutableStateOf(AuthState())
+        private set
+
+    fun onEmailChange(newEmail: String) {
+        state = state.copy(email = newEmail)
+    }
+
+    fun onPasswordChange(newPassword: String) {
+        state = state.copy(password = newPassword)
+    }
+
+    fun login(onSuccess: () -> Unit) {
+        state = state.copy(isLoading = true, error = null)
+        // Simulasi login, ganti dengan logic autentikasi real sesuai kebutuhan
+        if (state.email == "salman@example.com" && state.password == "123456") {
+            state = state.copy(isLoading = false, isSuccess = true)
+            onSuccess()
+        } else {
+            state = state.copy(isLoading = false, error = "Invalid email or password")
+        }
+    }
+}
