@@ -26,11 +26,14 @@ data class DashboardState(
 )
 
 class DashboardViewModel(
-    private val roadmapRepository: RoadmapRepository
+    private val roadmapRepository: RoadmapRepository,
+    private val notificationsViewModel: NotificationsViewModel? = null // Optional injection
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DashboardState())
     val state: StateFlow<DashboardState> = _state.asStateFlow()
+
+    private var previousCompletedIds: Set<String> = emptySet()
 
     init {
         loadRoadmaps()
@@ -42,10 +45,21 @@ class DashboardViewModel(
 
             try {
                 val roadmapList = roadmapRepository.getRoadmaps()
+                val newCompleted = roadmapList.filter { roadmap -> roadmap.progress >= 1f }
+                val newCompletedIds = newCompleted.map { it.id }.toSet()
+                val justCompleted = newCompleted.filter { it.id !in previousCompletedIds }
+                // Trigger notification for each newly completed roadmap
+                justCompleted.forEach { roadmap ->
+                    notificationsViewModel?.addNotification(
+                        title = "Congrats!",
+                        message = "You have completed the roadmap: ${roadmap.title}"
+                    )
+                }
+                previousCompletedIds = newCompletedIds
                 _state.update {
                     it.copy(
                         inProgressRoadmaps = roadmapList.filter { roadmap -> roadmap.progress in 0.01f..0.99f },
-                        completedRoadmaps = roadmapList.filter { roadmap -> roadmap.progress >= 1f },
+                        completedRoadmaps = newCompleted,
                         notStartedRoadmaps = roadmapList.filter { roadmap -> roadmap.progress == 0f },
                         isLoading = false
                     )
