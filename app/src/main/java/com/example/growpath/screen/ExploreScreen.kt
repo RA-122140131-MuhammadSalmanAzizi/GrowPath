@@ -16,12 +16,16 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.growpath.model.Roadmap
 import com.example.growpath.repository.RoadmapRepository
-import com.example.growpath.utils.ViewModelFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.collectAsState
+import kotlinx.coroutines.flow.catch
+import dagger.hilt.android.lifecycle.HiltViewModel // Added for Hilt
+import javax.inject.Inject // Added for Hilt
+import androidx.hilt.navigation.compose.hiltViewModel // Added for Hilt
 
 data class ExploreState(
     val searchQuery: String = "",
@@ -31,48 +35,69 @@ data class ExploreState(
     val error: String? = null
 )
 
-class ExploreViewModel(private val roadmapRepository: RoadmapRepository) : ViewModel() {
+@HiltViewModel // Added for Hilt
+class ExploreViewModel @Inject constructor( // Added @Inject for Hilt
+    private val roadmapRepository: RoadmapRepository
+) : ViewModel() {
     private val _state = MutableStateFlow(ExploreState())
     val state: StateFlow<ExploreState> = _state.asStateFlow()
 
+    private var roadmapJob: kotlinx.coroutines.Job? = null
+
     init {
-        loadRoadmaps()
+        observeRoadmaps()
     }
 
-    private fun loadRoadmaps() {
-        viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-            try {
-                val roadmaps = roadmapRepository.getRoadmaps()
-                _state.update {
-                    it.copy(
-                        roadmaps = roadmaps,
-                        filteredRoadmaps = roadmaps,
-                        isLoading = false
-                    )
+    private fun observeRoadmaps() {
+        roadmapJob?.cancel()
+        roadmapJob = viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            roadmapRepository.getRoadmaps()
+                .catch { e ->
+                    _state.update {
+                        it.copy(
+                            error = "Failed to load roadmaps: ${e.message}",
+                            isLoading = false
+                        )
+                    }
                 }
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        error = "Failed to load roadmaps: ${e.message}",
-                        isLoading = false
-                    )
+                .collect { roadmapList ->
+                    val currentQuery = _state.value.searchQuery
+                    val newFilteredRoadmaps = if (currentQuery.isBlank()) {
+                        roadmapList
+                    } else {
+                        roadmapList.filter { roadmap ->
+                            roadmap.title.contains(currentQuery, ignoreCase = true) ||
+                            roadmap.description.contains(currentQuery, ignoreCase = true)
+                        }
+                    }
+                    _state.update {
+                        it.copy(
+                            roadmaps = roadmapList,
+                            filteredRoadmaps = newFilteredRoadmaps,
+                            isLoading = false,
+                            error = null
+                        )
+                    }
                 }
-            }
         }
     }
 
+    fun onRefresh() {
+        observeRoadmaps()
+    }
+
     fun onSearchQueryChange(query: String) {
-        _state.update {
+        _state.update { currentState ->
             val filtered = if (query.isBlank()) {
-                _state.value.roadmaps
+                currentState.roadmaps
             } else {
-                _state.value.roadmaps.filter { roadmap ->
+                currentState.roadmaps.filter { roadmap ->
                     roadmap.title.contains(query, ignoreCase = true) ||
                     roadmap.description.contains(query, ignoreCase = true)
                 }
             }
-            it.copy(searchQuery = query, filteredRoadmaps = filtered)
+            currentState.copy(searchQuery = query, filteredRoadmaps = filtered)
         }
     }
 }
@@ -81,7 +106,7 @@ class ExploreViewModel(private val roadmapRepository: RoadmapRepository) : ViewM
 @Composable
 fun ExploreScreen(
     onRoadmapClick: (String) -> Unit,
-    viewModel: ExploreViewModel = viewModel(factory = ViewModelFactory())
+    viewModel: ExploreViewModel = hiltViewModel() // NEW: Use Hilt to get the ViewModel
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -157,3 +182,4 @@ fun ExploreScreen(
         }
     }
 }
+

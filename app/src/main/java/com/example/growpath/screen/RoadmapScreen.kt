@@ -29,8 +29,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.growpath.model.Milestone
-import com.example.growpath.utils.ViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,7 +38,7 @@ fun RoadmapScreen(
     roadmapId: String,
     onBackClick: () -> Unit,
     onMilestoneClick: (String) -> Unit,
-    viewModel: RoadmapViewModel = viewModel(factory = ViewModelFactory())
+    viewModel: RoadmapViewModel = hiltViewModel()
 ) {
     LaunchedEffect(roadmapId) {
         viewModel.loadMilestones(roadmapId)

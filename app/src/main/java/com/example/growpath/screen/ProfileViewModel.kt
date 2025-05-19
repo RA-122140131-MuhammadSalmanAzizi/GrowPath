@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.growpath.model.Achievement
 import com.example.growpath.model.User
 import com.example.growpath.repository.UserRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,7 +24,8 @@ data class ProfileState(
     val error: String? = null
 )
 
-class ProfileViewModel(private val userRepository: UserRepository) : ViewModel() {
+@HiltViewModel
+class ProfileViewModel @Inject constructor(private val userRepository: UserRepository) : ViewModel() {
     private val _state = MutableStateFlow(ProfileState())
     val state: StateFlow<ProfileState> = _state.asStateFlow()
 
@@ -32,15 +35,21 @@ class ProfileViewModel(private val userRepository: UserRepository) : ViewModel()
     }
 
     private fun loadProfile() {
-        _state.update { it.copy(isLoading = true) }
-
-        val user = userRepository.getUser()
-        _state.update {
-            it.copy(
-                user = user,
-                isLoading = false,
-                error = if (user == null) "Failed to load user profile" else null
-            )
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            try {
+                val user = userRepository.getUser()
+                _state.update {
+                    it.copy(user = user, isLoading = false)
+                }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        error = "Failed to load profile: ${e.message}",
+                        isLoading = false
+                    )
+                }
+            }
         }
     }
 
@@ -49,34 +58,38 @@ class ProfileViewModel(private val userRepository: UserRepository) : ViewModel()
             _state.update { it.copy(isAchievementsLoading = true) }
             try {
                 val achievements = userRepository.getUserAchievements()
-                _state.update { it.copy(
-                    achievements = achievements,
-                    isAchievementsLoading = false
-                )}
+                _state.update {
+                    it.copy(
+                        achievements = achievements,
+                        isAchievementsLoading = false
+                    )
+                }
             } catch (e: Exception) {
-                _state.update { it.copy(
-                    error = "Failed to load achievements: ${e.message}",
-                    isAchievementsLoading = false
-                )}
+                _state.update {
+                    it.copy(
+                        error = "Failed to load achievements: ${e.message}",
+                        isAchievementsLoading = false
+                    )
+                }
             }
         }
     }
 
     fun updateProfile(displayName: String) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+            _state.update { it.copy(isLoading = true, error = null) }
             try {
                 val updatedUser = userRepository.updateUserProfile(displayName)
-                _state.update { it.copy(
-                    user = updatedUser,
-                    isLoading = false,
-                    error = null
-                )}
+                _state.update { state ->
+                    state.copy(user = updatedUser, isLoading = false)
+                }
             } catch (e: Exception) {
-                _state.update { it.copy(
-                    error = "Failed to update profile: ${e.message}",
-                    isLoading = false
-                )}
+                _state.update {
+                    it.copy(
+                        error = "Failed to update profile: ${e.message}",
+                        isLoading = false
+                    )
+                }
             }
         }
     }

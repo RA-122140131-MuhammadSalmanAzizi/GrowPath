@@ -27,7 +27,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.growpath.GrowPathApp
 import com.example.growpath.component.HomeStatisticsWidget
@@ -37,19 +36,17 @@ import com.example.growpath.component.UpcomingMilestoneWidget
 import com.example.growpath.component.getHomeWidgets
 import com.example.growpath.model.Roadmap
 import com.example.growpath.navigation.NavGraph
-import com.example.growpath.utils.ViewModelFactory
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     onRoadmapClick: (String) -> Unit,
     onProfileClick: () -> Unit,
-    viewModel: DashboardViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
-        factory = ViewModelFactory()
-    ),
-    notificationsViewModel: NotificationsViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    viewModel: DashboardViewModel = hiltViewModel(),
+    notificationsViewModel: NotificationsViewModel = hiltViewModel(),
     navController: NavController? = null
 ) {
     val state by viewModel.state.collectAsState()
@@ -60,6 +57,20 @@ fun DashboardScreen(
     LaunchedEffect(key1 = state.error) {
         state.error?.let { error ->
             snackbarHostState.showSnackbar(error)
+        }
+    }
+
+    // Observe dashboard events for notifications
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is DashboardEvent.RoadmapCompleted -> {
+                    notificationsViewModel.addNotification(
+                        title = event.title,
+                        message = event.message
+                    )
+                }
+            }
         }
     }
 

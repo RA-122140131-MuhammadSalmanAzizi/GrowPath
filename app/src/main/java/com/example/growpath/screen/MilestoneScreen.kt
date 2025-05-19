@@ -23,8 +23,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.growpath.utils.ViewModelFactory
+import androidx.hilt.navigation.compose.hiltViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -33,7 +32,7 @@ import java.util.*
 fun MilestoneScreen(
     milestoneId: String,
     onBackClick: () -> Unit,
-    viewModel: MilestoneViewModel = viewModel(factory = ViewModelFactory())
+    viewModel: MilestoneViewModel = hiltViewModel()
 ) {
     LaunchedEffect(milestoneId) {
         viewModel.loadMilestone(milestoneId)
