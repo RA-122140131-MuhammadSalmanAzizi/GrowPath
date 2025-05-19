@@ -36,18 +36,22 @@ fun NavigationHost(
                         },
                         onProfileClick = {
                             navController.navigate(NavGraph.PROFILE)
-                        }
+                        },
+                        navController = navController // Pass NavController
                     )
                 }
 
                 composable(NavGraph.PROFILE) {
                     ProfileScreen(
-                        onBackClick = { navController.popBackStack() }
+                        onBackClick = { navController.popBackStack() },
+                        navController = navController // Pass NavController
                     )
                 }
 
                 composable(NavGraph.ACHIEVEMENTS) {
-                    AchievementsScreen()
+                    AchievementsScreen(
+                        // Pass NavController if needed for navigation from AchievementsScreen
+                    )
                 }
 
                 composable(NavGraph.EXPLORE) {
@@ -81,6 +85,17 @@ fun NavigationHost(
                         milestoneId = milestoneId,
                         onBackClick = { navController.popBackStack() }
                     )
+                }
+                composable(NavGraph.POMODORO) {
+                    PomodoroScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+                composable(NavGraph.NOTIFICATIONS) {
+                    NotificationsScreen()
+                }
+                composable(NavGraph.ABOUT) {
+                    AboutScreen()
                 }
             }
         }

@@ -83,17 +83,18 @@ fun BottomNavigationBar(navController: NavController) {
                     label = { Text(item.title) },
                     selected = selected,
                     onClick = {
-                        navController.navigate(item.route) {
-                            // Pop up to the start destination of the graph to
-                            // avoid building up a large stack of destinations
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
+                        if (currentDestination?.route != item.route) {
+                            // Clear back stack and navigate to the selected destination
+                            navController.navigate(item.route) {
+                                // Clear the entire back stack and start fresh
+                                popUpTo(0) {
+                                    saveState = true
+                                }
+                                // Avoid multiple copies of the same destination
+                                launchSingleTop = true
+                                // Restore state when reselecting a previously selected item
+                                restoreState = true
                             }
-                            // Avoid multiple copies of the same destination when
-                            // reselecting the same item
-                            launchSingleTop = true
-                            // Restore state when reselecting a previously selected item
-                            restoreState = true
                         }
                     }
                 )
