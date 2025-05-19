@@ -22,6 +22,7 @@
     <color name="success">#4CAF50</color>
     <color name="warning">#FFC107</color>
     <color name="info">#2196F3</color>
+    <color name="white">#FFFFFF</color>
 
     <!-- Progress Indicator Colors -->
     <color name="progress_low">#F44336</color>

@@ -20,7 +20,7 @@ androidxJunit = "1.2.1"
 espressoCore = "3.6.1"
 
 [plugins]
-android-application = { id = "com.android.application", version = "8.6.0" }
+android-application = { id = "com.android.application", version = "8.10.0" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version = "1.9.23" }
 kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version = "1.9.23" }
 hilt-android = { id = "com.google.dagger.hilt.android", version = "2.48" }

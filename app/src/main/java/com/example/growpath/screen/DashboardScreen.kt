@@ -139,16 +139,13 @@ fun DashboardScreen(
                 // Reload page data
                 viewModel.onRefresh()
             },
-            indicator = { state, trigger ->
-                // Pastikan indikator refresh muncul di tengah layar dengan ukuran yang lebih besar
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    SpinningRefreshIndicator(state = state, refreshTrigger = trigger)
-                }
+            indicator = { swipeRefreshState, refreshTriggerDistance ->
+                // Using the standard SwipeRefreshIndicator from Accompanist library
+                com.google.accompanist.swiperefresh.SwipeRefreshIndicator(
+                    state = swipeRefreshState,
+                    refreshTriggerDistance = refreshTriggerDistance,
+                    scale = true // Enables the default scaling animation for the indicator
+                )
             },
             indicatorPadding = PaddingValues(top = 16.dp)
         ) {
