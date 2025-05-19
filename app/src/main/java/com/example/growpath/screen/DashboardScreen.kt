@@ -1,7 +1,7 @@
 package com.example.growpath.screen
 
+import androidx.compose.animation.core.*
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,12 +12,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -30,11 +32,14 @@ import androidx.navigation.NavController
 import com.example.growpath.GrowPathApp
 import com.example.growpath.component.HomeStatisticsWidget
 import com.example.growpath.component.HomeWidgetsGrid
+import com.example.growpath.component.SpinningRefreshIndicator
 import com.example.growpath.component.UpcomingMilestoneWidget
 import com.example.growpath.component.getHomeWidgets
 import com.example.growpath.model.Roadmap
 import com.example.growpath.navigation.NavGraph
 import com.example.growpath.utils.ViewModelFactory
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,10 +49,13 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
         factory = ViewModelFactory()
     ),
+    notificationsViewModel: NotificationsViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     navController: NavController? = null
 ) {
     val state by viewModel.state.collectAsState()
+    val notificationsState by notificationsViewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val refreshState = rememberSwipeRefreshState(isRefreshing = state.isLoading)
 
     LaunchedEffect(key1 = state.error) {
         state.error?.let { error ->
@@ -69,9 +77,26 @@ fun DashboardScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.onRefresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                    // Notification Bell Icon with badge if there are unread notifications
+                    BadgedBox(
+                        badge = {
+                            if (notificationsState.unreadCount > 0) {
+                                Badge {
+                                    Text(
+                                        text = if (notificationsState.unreadCount > 9) "9+" else notificationsState.unreadCount.toString()
+                                    )
+                                }
+                            }
+                        }
+                    ) {
+                        IconButton(onClick = { navController?.navigate(NavGraph.NOTIFICATIONS) }) {
+                            Icon(
+                                Icons.Outlined.Notifications,
+                                contentDescription = "Notifications"
+                            )
+                        }
                     }
+
                     IconButton(onClick = onProfileClick) {
                         Icon(Icons.Default.Person, contentDescription = "Profile")
                     }
@@ -98,112 +123,142 @@ fun DashboardScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 88.dp) // Extra space for FAB
+        // Using SwipeRefresh to implement pull-to-refresh functionality
+        SwipeRefresh(
+            state = refreshState,
+            onRefresh = {
+                // Play a sound effect when refresh is released
+                navController?.context?.let { context ->
+                    try {
+                        val audioManager = context.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
+                        audioManager.playSoundEffect(android.media.AudioManager.FX_KEY_CLICK)
+                    } catch (e: Exception) {
+                        // Silently handle any errors with sound playback
+                    }
+                }
+                // Reload page data
+                viewModel.onRefresh()
+            },
+            indicator = { state, trigger ->
+                // Pastikan indikator refresh muncul di tengah layar dengan ukuran yang lebih besar
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    SpinningRefreshIndicator(state = state, refreshTrigger = trigger)
+                }
+            },
+            indicatorPadding = PaddingValues(top = 16.dp)
         ) {
-            item {
-                UserProgressCard(
-                    userName = state.userName,
-                    userLevel = state.userLevel,
-                    userExperience = state.userExperience,
-                    onProfileClick = onProfileClick
-                )
-            }
-
-            // Home Widgets Section (menggantikan Quick Actions)
-            item {
-                HomeWidgetsGrid(
-                    widgets = getHomeWidgets(navController),
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
-
-            // Statistics Section
-            item {
-                HomeStatisticsWidget(
-                    completedToday = 2,
-                    streak = 5,
-                    totalXp = state.userExperience,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
-
-            // Continue Learning Widget
-            if (state.inProgressRoadmaps.isNotEmpty()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(MaterialTheme.colorScheme.background),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = 88.dp) // Extra space for FAB
+            ) {
                 item {
-                    val firstInProgress = state.inProgressRoadmaps.first()
-                    UpcomingMilestoneWidget(
-                        title = firstInProgress.title,
-                        description = firstInProgress.description,
-                        progress = firstInProgress.progress,
-                        onClick = { onRoadmapClick(firstInProgress.id) },
+                    UserProgressCard(
+                        userName = state.userName,
+                        userLevel = state.userLevel,
+                        userExperience = state.userExperience,
+                        onProfileClick = onProfileClick
+                    )
+                }
+
+                // Home Widgets Section (menggantikan Quick Actions)
+                item {
+                    HomeWidgetsGrid(
+                        widgets = getHomeWidgets(navController),
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
-            }
 
-            // In Progress Roadmaps
-            if (state.inProgressRoadmaps.isNotEmpty()) {
+                // Statistics Section
                 item {
-                    SectionHeader(
-                        title = "In Progress",
-                        icon = Icons.Default.Timeline,
-                        count = state.inProgressRoadmaps.size,
-                        navController = navController,
-                        categoryType = "in_progress"
+                    HomeStatisticsWidget(
+                        completedToday = 2,
+                        streak = 5,
+                        totalXp = state.userExperience,
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
 
-                items(state.inProgressRoadmaps) { roadmap ->
-                    RoadmapCardEnhanced(
-                        roadmap = roadmap,
-                        onClick = { onRoadmapClick(roadmap.id) }
-                    )
-                }
-            }
-
-            // Not Started Roadmaps
-            if (state.notStartedRoadmaps.isNotEmpty()) {
-                item {
-                    SectionHeader(
-                        title = "Not Started",
-                        icon = Icons.Default.PlayCircleOutline,
-                        count = state.notStartedRoadmaps.size,
-                        navController = navController,
-                        categoryType = "not_started"
-                    )
+                // Continue Learning Widget
+                if (state.inProgressRoadmaps.isNotEmpty()) {
+                    item {
+                        val firstInProgress = state.inProgressRoadmaps.first()
+                        UpcomingMilestoneWidget(
+                            title = firstInProgress.title,
+                            description = firstInProgress.description,
+                            progress = firstInProgress.progress,
+                            onClick = { onRoadmapClick(firstInProgress.id) },
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    }
                 }
 
-                items(state.notStartedRoadmaps) { roadmap ->
-                    RoadmapCardEnhanced(
-                        roadmap = roadmap,
-                        onClick = { onRoadmapClick(roadmap.id) }
-                    )
-                }
-            }
+                // In Progress Roadmaps
+                if (state.inProgressRoadmaps.isNotEmpty()) {
+                    item {
+                        SectionHeader(
+                            title = "In Progress",
+                            icon = Icons.Default.Timeline,
+                            count = state.inProgressRoadmaps.size,
+                            navController = navController,
+                            categoryType = "in_progress"
+                        )
+                    }
 
-            // Completed Roadmaps
-            if (state.completedRoadmaps.isNotEmpty()) {
-                item {
-                    SectionHeader(
-                        title = "Completed",
-                        icon = Icons.Default.CheckCircle,
-                        count = state.completedRoadmaps.size,
-                        navController = navController,
-                        categoryType = "completed"
-                    )
+                    items(state.inProgressRoadmaps) { roadmap ->
+                        RoadmapCardEnhanced(
+                            roadmap = roadmap,
+                            onClick = { onRoadmapClick(roadmap.id) }
+                        )
+                    }
                 }
 
-                items(state.completedRoadmaps) { roadmap ->
-                    RoadmapCardEnhanced(
-                        roadmap = roadmap,
-                        onClick = { onRoadmapClick(roadmap.id) }
-                    )
+                // Not Started Roadmaps
+                if (state.notStartedRoadmaps.isNotEmpty()) {
+                    item {
+                        SectionHeader(
+                            title = "Not Started",
+                            icon = Icons.Default.PlayCircleOutline,
+                            count = state.notStartedRoadmaps.size,
+                            navController = navController,
+                            categoryType = "not_started"
+                        )
+                    }
+
+                    items(state.notStartedRoadmaps) { roadmap ->
+                        RoadmapCardEnhanced(
+                            roadmap = roadmap,
+                            onClick = { onRoadmapClick(roadmap.id) }
+                        )
+                    }
+                }
+
+                // Completed Roadmaps
+                if (state.completedRoadmaps.isNotEmpty()) {
+                    item {
+                        SectionHeader(
+                            title = "Completed",
+                            icon = Icons.Default.CheckCircle,
+                            count = state.completedRoadmaps.size,
+                            navController = navController,
+                            categoryType = "completed"
+                        )
+                    }
+
+                    items(state.completedRoadmaps) { roadmap ->
+                        RoadmapCardEnhanced(
+                            roadmap = roadmap,
+                            onClick = { onRoadmapClick(roadmap.id) }
+                        )
+                    }
                 }
             }
         }

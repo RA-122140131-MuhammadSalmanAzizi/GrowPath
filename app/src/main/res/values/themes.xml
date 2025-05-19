@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <style name="Theme.GrowPath" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Tema untuk Splash Screen -->
+    <style name="Theme.GrowPath.SplashScreen" parent="Theme.GrowPath">
+        <item name="android:windowBackground">@drawable/splash_background</item>
+        <item name="android:statusBarColor">@color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
 </resources>
+

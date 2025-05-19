@@ -92,7 +92,9 @@ fun NavigationHost(
                     )
                 }
                 composable(NavGraph.NOTIFICATIONS) {
-                    NotificationsScreen()
+                    NotificationsScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
                 }
                 composable(NavGraph.ABOUT) {
                     AboutScreen()
