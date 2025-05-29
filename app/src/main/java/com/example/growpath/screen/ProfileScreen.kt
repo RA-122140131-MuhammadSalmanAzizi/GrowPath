@@ -579,9 +579,10 @@ fun SettingsSection(
                         showLogoutDialog = false
                         // Perform logout logic
                         viewModel?.logout()
-                        // Navigate back to login/auth screen
-                        navController?.navigate(NavGraph.DASHBOARD) {
-                            popUpTo(NavGraph.DASHBOARD) { inclusive = true }
+                        // Navigate to login screen
+                        navController?.navigate(NavGraph.LOGIN) {
+                            // Clear all back stack so user can't go back to protected screens
+                            popUpTo(0) { inclusive = true }
                         }
                     }
                 ) {

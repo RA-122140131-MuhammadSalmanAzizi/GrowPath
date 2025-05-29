@@ -3,11 +3,15 @@
     <!-- Background -->
     <item android:drawable="@drawable/splash_background" />
 
-    <!-- Logo centered in the screen -->
-    <item>
+    <!-- Logo centered in the screen with proper scaling -->
+    <item
+        android:gravity="center"
+        android:width="200dp"
+        android:height="200dp">
         <bitmap
-            android:gravity="center"
-            android:src="@drawable/growpath_logo" />
+            android:gravity="fill"
+            android:src="@drawable/growpath_logo"
+            android:mipMap="true" />
     </item>
 </layer-list>
 

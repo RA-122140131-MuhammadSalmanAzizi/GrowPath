@@ -1,6 +1,7 @@
 package com.example.growpath.navigation
 
 object NavGraph {
+    const val LOGIN = "login"
     const val DASHBOARD = "dashboard"
     const val PROFILE = "profile"
     const val ROADMAP = "roadmap/{roadmapId}"

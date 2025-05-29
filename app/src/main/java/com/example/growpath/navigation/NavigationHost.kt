@@ -15,12 +15,16 @@ import com.example.growpath.screen.*
 @Composable
 fun NavigationHost(
     navController: NavHostController,
-    startDestination: String = NavGraph.DASHBOARD,
+    startDestination: String = NavGraph.LOGIN,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         bottomBar = {
-            BottomNavigationBar(navController = navController)
+            // Hanya tampilkan bottom navigation bar jika bukan di halaman login
+            val currentRoute = navController.currentBackStackEntry?.destination?.route
+            if (currentRoute != NavGraph.LOGIN) {
+                BottomNavigationBar(navController = navController)
+            }
         }
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
@@ -29,6 +33,18 @@ fun NavigationHost(
                 startDestination = startDestination,
                 modifier = modifier
             ) {
+                // Login route
+                composable(NavGraph.LOGIN) {
+                    AuthScreen(
+                        onLoginSuccess = {
+                            navController.navigate(NavGraph.DASHBOARD) {
+                                // Hapus login dari back stack agar tidak bisa kembali ke login
+                                popUpTo(NavGraph.LOGIN) { inclusive = true }
+                            }
+                        }
+                    )
+                }
+
                 composable(NavGraph.DASHBOARD) {
                     DashboardScreen(
                         onRoadmapClick = { roadmapId ->

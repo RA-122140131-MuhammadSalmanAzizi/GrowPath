@@ -1,41 +1,26 @@
 package com.example.growpath.screen
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
-data class AuthState(
-    val email: String = "",
-    val password: String = "",
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val isSuccess: Boolean = false
-)
-
 @HiltViewModel
-class AuthViewModel @Inject constructor() : ViewModel() {
-    var state by mutableStateOf(AuthState())
-        private set
+class AuthViewModel @Inject constructor(
+    @ApplicationContext private val context: Context
+) : ViewModel() {
 
-    fun onEmailChange(newEmail: String) {
-        state = state.copy(email = newEmail)
-    }
+    // Hardcoded credentials - stored in the ViewModel
+    private val validUsername = "Amor"
+    private val validPassword = "123"
 
-    fun onPasswordChange(newPassword: String) {
-        state = state.copy(password = newPassword)
-    }
+    // Mendapatkan context aplikasi
+    fun getContext(): Context = context
 
-    fun login(onSuccess: () -> Unit) {
-        state = state.copy(isLoading = true, error = null)
-        // Simulasi login, ganti dengan logic autentikasi real sesuai kebutuhan
-        if (state.email == "salman@example.com" && state.password == "123456") {
-            state = state.copy(isLoading = false, isSuccess = true)
-            onSuccess()
-        } else {
-            state = state.copy(isLoading = false, error = "Invalid email or password")
-        }
+    // Validate credentials
+    fun validateCredentials(username: String, password: String): Boolean {
+        return username == validUsername && password == validPassword
     }
 }
+

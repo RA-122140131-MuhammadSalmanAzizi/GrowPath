@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.example.growpath.navigation.NavGraph
 
 /**
@@ -52,7 +53,13 @@ fun getHomeWidgets(navController: NavController? = null): List<HomeWidget> {
             icon = Icons.Default.PlayArrow,
             primaryColor = Color(0xFF4CAF50),
             secondaryColor = Color(0xFF2E7D32),
-            action = { navController?.navigate(NavGraph.roadmapWithId("1")) }
+            action = {
+                navController?.navigate(NavGraph.roadmapWithId("1")) {
+                    // Allow navigation with back button working properly
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            }
         ),
         HomeWidget(
             id = "discover",
@@ -61,7 +68,16 @@ fun getHomeWidgets(navController: NavController? = null): List<HomeWidget> {
             icon = Icons.Default.Explore,
             primaryColor = Color(0xFF2196F3),
             secondaryColor = Color(0xFF0D47A1),
-            action = { navController?.navigate(NavGraph.EXPLORE) }
+            action = {
+                navController?.navigate(NavGraph.EXPLORE) {
+                    // Use the same navigation pattern as the bottom bar
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            }
         ),
         HomeWidget(
             id = "achievements",
@@ -70,15 +86,39 @@ fun getHomeWidgets(navController: NavController? = null): List<HomeWidget> {
             icon = Icons.Default.EmojiEvents,
             primaryColor = Color(0xFFFF9800),
             secondaryColor = Color(0xFFE65100),
-            action = { navController?.navigate(NavGraph.ACHIEVEMENTS) }
+            action = {
+                navController?.navigate(NavGraph.ACHIEVEMENTS) {
+                    // Use the same navigation pattern as the bottom bar
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            }
+        ),
+        HomeWidget(
+            id = "pomodoro",
+            title = "Pomodoro Timer",
+            description = "Focus on your tasks",
+            icon = Icons.Default.Timer,
+            primaryColor = Color(0xFFE91E63),
+            secondaryColor = Color(0xFFC2185B),
+            action = {
+                navController?.navigate(NavGraph.POMODORO_TIMER) {
+                    // Allow navigation with back button working properly
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            }
         ),
         HomeWidget(
             id = "study_reminder",
             title = "Study Reminder",
             description = "Set your daily reminders",
             icon = Icons.Default.Alarm,
-            primaryColor = Color(0xFFE91E63),
-            secondaryColor = Color(0xFFC2185B),
+            primaryColor = Color(0xFF9C27B0),
+            secondaryColor = Color(0xFF6A1B9A),
             action = { /* Open reminder dialog */ }
         )
     )
@@ -399,7 +439,7 @@ fun UpcomingMilestoneWidget(
             Spacer(modifier = Modifier.height(12.dp))
             
             LinearProgressIndicator(
-                progress = { progress },
+                progress = progress,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
