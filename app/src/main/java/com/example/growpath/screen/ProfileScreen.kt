@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -113,8 +114,8 @@ fun ProfileScreen(
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    // Settings/options
-                    SettingsSection()
+                    // Settings/options - Pass navController and viewModel
+                    SettingsSection(navController = navController, viewModel = viewModel)
                 }
             }
         }
@@ -478,7 +479,13 @@ fun AchievementItem(achievement: Achievement) {
 }
 
 @Composable
-fun SettingsSection() {
+fun SettingsSection(
+    navController: NavController? = null,
+    viewModel: ProfileViewModel? = null
+) {
+    var showAboutDialog by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
@@ -500,27 +507,93 @@ fun SettingsSection() {
                 icon = Icons.Default.Notifications,
                 title = "Notifications",
                 subtitle = "Manage your notification preferences",
-                onClick = { /* Navigate to notifications settings */ }
+                onClick = {
+                    // Navigate to notifications screen
+                    navController?.navigate(NavGraph.NOTIFICATIONS)
+                }
             )
             
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
-            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
             SettingsItem(
                 icon = Icons.Default.Info,
                 title = "About",
                 subtitle = "Learn more about GrowPath",
-                onClick = { /* Show about dialog */ }
+                onClick = { showAboutDialog = true }
             )
             
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
-            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
             SettingsItem(
-                icon = Icons.Default.Logout,
+                icon = Icons.AutoMirrored.Filled.Logout,
                 title = "Logout",
                 subtitle = "Sign out from your account",
-                onClick = { /* Logout functionality */ }
+                onClick = { showLogoutDialog = true }
             )
         }
+    }
+
+    // About Dialog
+    if (showAboutDialog) {
+        AlertDialog(
+            onDismissRequest = { showAboutDialog = false },
+            title = { Text("About GrowPath") },
+            icon = { Icon(Icons.Default.Info, contentDescription = null) },
+            text = {
+                Column {
+                    Text(
+                        "GrowPath v1.0.0",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "GrowPath adalah aplikasi yang dirancang untuk membantu Anda melacak kemajuan pembelajaran dan pengembangan keterampilan Anda melalui roadmap yang terstruktur.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "© 2025 GrowPath Team",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAboutDialog = false }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    // Logout Confirmation Dialog
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Logout") },
+            text = { Text("Apakah Anda yakin ingin keluar dari akun?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutDialog = false
+                        // Perform logout logic
+                        viewModel?.logout()
+                        // Navigate back to login/auth screen
+                        navController?.navigate(NavGraph.DASHBOARD) {
+                            popUpTo(NavGraph.DASHBOARD) { inclusive = true }
+                        }
+                    }
+                ) {
+                    Text("Logout", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("Batal")
+                }
+            }
+        )
     }
 }
 

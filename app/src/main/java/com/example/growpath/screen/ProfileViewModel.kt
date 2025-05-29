@@ -1,8 +1,5 @@
 package com.example.growpath.screen
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.growpath.model.Achievement
@@ -87,6 +84,30 @@ class ProfileViewModel @Inject constructor(private val userRepository: UserRepos
                 _state.update {
                     it.copy(
                         error = "Failed to update profile: ${e.message}",
+                        isLoading = false
+                    )
+                }
+            }
+        }
+    }
+
+    // Fungsi untuk logout pengguna
+    fun logout() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            try {
+                // Implementasi dummy logout
+                // Di aplikasi nyata, ini akan memanggil metode logout di UserRepository
+                // yang akan menghapus token, session, dll.
+
+                // Reset state aplikasi
+                _state.update {
+                    ProfileState(isLoading = false)
+                }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        error = "Failed to logout: ${e.message}",
                         isLoading = false
                     )
                 }
