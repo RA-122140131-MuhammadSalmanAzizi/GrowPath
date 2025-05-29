@@ -1,12 +1,11 @@
 package com.example.growpath.screen
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.growpath.data.NotificationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import java.util.Date
 
 data class Notification(
@@ -25,85 +24,45 @@ data class NotificationsState(
 )
 
 @HiltViewModel
-class NotificationsViewModel @Inject constructor() : ViewModel() {
+class NotificationsViewModel @Inject constructor(
+    private val notificationRepository: NotificationRepository
+) : ViewModel() {
 
     private val _state = MutableStateFlow(NotificationsState())
     val state: StateFlow<NotificationsState> = _state.asStateFlow()
 
     init {
-        // Load sample notifications for testing
-        loadSampleNotifications()
-    }
-
-    private fun loadSampleNotifications() {
-        val sampleNotifications = listOf(
-            Notification(
-                title = "Welcome to GrowPath!",
-                message = "Start exploring roadmaps to begin your learning journey."
-            ),
-            Notification(
-                title = "New Android Development Roadmap",
-                message = "Check out the new Android Development roadmap with Jetpack Compose."
-            ),
-            Notification(
-                title = "Daily Reminder",
-                message = "Don't forget to check your progress on Kotlin Multiplatform roadmap."
-            )
+        // Combine flows from repository to update the UI state
+        combine(
+            notificationRepository.notificationsFlow,
+            notificationRepository.unreadCountFlow
+        ) { notifications, unreadCount ->
+            _state.update { currentState ->
+                currentState.copy(
+                    notifications = notifications,
+                    unreadCount = unreadCount
+                )
+            }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(),
+            initialValue = Unit
         )
-
-        _state.update { currentState ->
-            currentState.copy(
-                notifications = sampleNotifications,
-                unreadCount = sampleNotifications.count { !it.isRead }
-            )
-        }
     }
 
     fun addNotification(title: String, message: String) {
-        val newNotification = Notification(
-            title = title,
-            message = message
-        )
-
-        _state.update { currentState ->
-            val updatedNotifications = currentState.notifications + newNotification
-            currentState.copy(
-                notifications = updatedNotifications,
-                unreadCount = updatedNotifications.count { !it.isRead }
-            )
-        }
+        notificationRepository.addNotification(title, message)
     }
 
     fun markAsRead(notificationId: String) {
-        _state.update { currentState ->
-            val updatedNotifications = currentState.notifications.map { notification ->
-                if (notification.id == notificationId) {
-                    notification.copy(isRead = true)
-                } else {
-                    notification
-                }
-            }
-
-            currentState.copy(
-                notifications = updatedNotifications,
-                unreadCount = updatedNotifications.count { !it.isRead }
-            )
-        }
+        notificationRepository.markAsRead(notificationId)
     }
 
     fun markAllAsRead() {
-        _state.update { currentState ->
-            val updatedNotifications = currentState.notifications.map { it.copy(isRead = true) }
-            currentState.copy(
-                notifications = updatedNotifications,
-                unreadCount = 0
-            )
-        }
+        notificationRepository.markAllAsRead()
     }
 
     fun clearNotifications() {
-        _state.update {
-            it.copy(notifications = emptyList(), unreadCount = 0)
-        }
+        notificationRepository.clearNotifications()
     }
 }

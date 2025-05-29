@@ -1,10 +1,12 @@
 package com.example.growpath.navigation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -19,15 +21,24 @@ fun NavigationHost(
     modifier: Modifier = Modifier
 ) {
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0), // Remove default window insets
         bottomBar = {
             // Hanya tampilkan bottom navigation bar jika bukan di halaman login
             val currentRoute = navController.currentBackStackEntry?.destination?.route
             if (currentRoute != NavGraph.LOGIN) {
                 BottomNavigationBar(navController = navController)
             }
-        }
+        },
+        modifier = modifier
     ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding)) {
+        Box(
+            modifier = Modifier
+                .padding(
+                    bottom = innerPadding.calculateBottomPadding(),
+                    // Use smaller top padding to reduce top thickness
+                    top = 4.dp
+                )
+        ) {
             NavHost(
                 navController = navController,
                 startDestination = startDestination,

@@ -111,15 +111,6 @@ fun getHomeWidgets(navController: NavController? = null): List<HomeWidget> {
                     restoreState = true
                 }
             }
-        ),
-        HomeWidget(
-            id = "study_reminder",
-            title = "Study Reminder",
-            description = "Set your daily reminders",
-            icon = Icons.Default.Alarm,
-            primaryColor = Color(0xFF9C27B0),
-            secondaryColor = Color(0xFF6A1B9A),
-            action = { /* Open reminder dialog */ }
         )
     )
 }

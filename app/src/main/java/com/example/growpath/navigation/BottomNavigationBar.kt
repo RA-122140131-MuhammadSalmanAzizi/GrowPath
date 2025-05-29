@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -64,7 +65,9 @@ fun BottomNavigationBar(navController: NavController) {
 
     // Only show the bottom bar when NOT on login screen
     if (currentDestination?.route != NavGraph.LOGIN) {
-        NavigationBar {
+        NavigationBar(
+            tonalElevation = 0.dp // Remove elevation shadow for a flatter look
+        ) {
             bottomNavItems.forEach { item ->
                 val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
 
