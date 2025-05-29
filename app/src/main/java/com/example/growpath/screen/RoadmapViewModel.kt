@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.catch
 
 data class RoadmapState(
     val roadmapId: String = "",
@@ -25,57 +26,73 @@ class RoadmapViewModel @Inject constructor(private val roadmapRepository: Roadma
     private val _state = MutableStateFlow(RoadmapState())
     val state: StateFlow<RoadmapState> = _state.asStateFlow()
 
-    fun loadMilestones(roadmapId: String) {
-        viewModelScope.launch {
-            _state.update {
-                it.copy(isLoading = true, roadmapId = roadmapId, error = null)
-            }
-            try {
-                // Ambil data dari repository
-                val title = roadmapRepository.getRoadmapTitle(roadmapId)
-                val milestonesList = roadmapRepository.getMilestonesForRoadmap(roadmapId)
+    private var currentRoadmapId: String? = null
 
-                _state.update {
-                    it.copy(
-                        roadmapTitle = title,
-                        milestones = milestonesList,
-                        isLoading = false
-                    )
-                }
+    fun loadMilestones(roadmapId: String) {
+        // Store the current roadmap ID to avoid duplicate subscriptions
+        if (currentRoadmapId == roadmapId) return
+        currentRoadmapId = roadmapId
+
+        _state.update {
+            it.copy(isLoading = true, roadmapId = roadmapId, error = null)
+        }
+
+        // Launch coroutine to get roadmap title
+        viewModelScope.launch {
+            try {
+                val title = roadmapRepository.getRoadmapTitle(roadmapId)
+                _state.update { it.copy(roadmapTitle = title) }
             } catch (e: Exception) {
                 _state.update {
                     it.copy(
-                        error = "Failed to load roadmap details: ${e.message}",
+                        error = "Failed to load roadmap title: ${e.message}",
                         isLoading = false
                     )
                 }
             }
+        }
+
+        // Subscribe to the flow of milestones for this roadmap
+        viewModelScope.launch {
+            roadmapRepository.getMilestonesForRoadmap(roadmapId)
+                .catch { e ->
+                    _state.update {
+                        it.copy(
+                            error = "Failed to load milestones: ${e.message}",
+                            isLoading = false
+                        )
+                    }
+                }
+                .collect { milestonesList ->
+                    _state.update {
+                        it.copy(
+                            milestones = milestonesList,
+                            isLoading = false,
+                            error = null
+                        )
+                    }
+                }
         }
     }
 
     fun onMilestoneComplete(milestoneId: String, isCompleted: Boolean) {
         viewModelScope.launch {
             try {
-                // Update completion status in the repository
+                // Only need to call the repository method, the Flow will update automatically
                 roadmapRepository.updateMilestoneCompletion(milestoneId, isCompleted)
 
-                // Update the local state
-                _state.update { currentState ->
-                    currentState.copy(
-                        milestones = currentState.milestones.map { milestone ->
-                            if (milestone.id == milestoneId) {
-                                milestone.copy(isCompleted = isCompleted)
-                            } else {
-                                milestone
-                            }
-                        }
-                    )
-                }
+                // We don't need to manually update the local state as the repository will emit updates
+                // that will be collected by the Flow collector above
             } catch (e: Exception) {
                 _state.update {
                     it.copy(error = "Failed to update milestone: ${e.message}")
                 }
             }
         }
+    }
+
+    // Function to trigger a manual refresh if needed
+    fun refresh() {
+        currentRoadmapId?.let { loadMilestones(it) }
     }
 }

@@ -43,7 +43,6 @@ class DashboardViewModel @Inject constructor(
     val state: StateFlow<DashboardState> = _state.asStateFlow()
 
     private var previousCompletedIds: Set<String> = emptySet()
-    private var roadmapJob: kotlinx.coroutines.Job? = null
 
     // Event for communicating with other ViewModels
     private val _events = MutableSharedFlow<DashboardEvent>()
@@ -54,8 +53,7 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun observeRoadmaps() {
-        roadmapJob?.cancel()
-        roadmapJob = viewModelScope.launch {
+        viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
 
             roadmapRepository.getRoadmaps()
@@ -89,6 +87,14 @@ class DashboardViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    // Manual refresh function that can be triggered by pull-to-refresh
+    fun refresh() {
+        // No need to explicitly re-fetch data since we're using a continuous Flow
+        // Just update the loading state to show a refresh indicator
+        _state.update { it.copy(isLoading = true) }
+        // The loading state will be automatically updated when new data arrives
     }
 
     // Modified to emit an event instead of directly calling NotificationsViewModel

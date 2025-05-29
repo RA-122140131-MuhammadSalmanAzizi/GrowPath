@@ -5,15 +5,22 @@ import com.example.growpath.model.Roadmap
 import kotlinx.coroutines.flow.Flow
 
 interface RoadmapRepository {
-    fun getRoadmaps(): Flow<List<Roadmap>> // Changed to return Flow and non-suspend
-    // Tambah fungsi lain sesuai kebutuhan
+    // Returns a continuous Flow of roadmaps that will emit updates whenever data changes
+    fun getRoadmaps(): Flow<List<Roadmap>>
 
-    // Added based on ViewModel assumptions
-    suspend fun getRoadmapTitle(roadmapId: String): String
-    suspend fun getMilestonesForRoadmap(roadmapId: String): List<Milestone>
-    suspend fun getMilestoneById(milestoneId: String): Milestone?
+    // Returns a Flow of roadmap details that will emit updates when the roadmap changes
+    fun getRoadmapById(roadmapId: String): Flow<Roadmap?>
+
+    // Returns a Flow of milestones for a specific roadmap that will emit updates
+    fun getMilestonesForRoadmap(roadmapId: String): Flow<List<Milestone>>
+
+    // Returns a Flow for a specific milestone that will emit updates
+    fun getMilestoneById(milestoneId: String): Flow<Milestone?>
+
+    // Methods for modifying data - these should trigger updates in the Flows
     suspend fun updateMilestoneCompletion(milestoneId: String, isCompleted: Boolean)
-
-    // Tambahkan metode baru untuk mengelola catatan milestone
     suspend fun updateMilestoneNote(milestoneId: String, noteContent: String)
+
+    // Helper methods
+    suspend fun getRoadmapTitle(roadmapId: String): String
 }

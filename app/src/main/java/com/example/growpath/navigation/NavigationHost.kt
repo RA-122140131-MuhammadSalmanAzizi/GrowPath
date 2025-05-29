@@ -99,6 +99,12 @@ fun NavigationHost(
                 composable(NavGraph.ABOUT) {
                     AboutScreen()
                 }
+
+                composable(NavGraph.POMODORO_TIMER) { // Added Pomodoro Timer screen
+                    PomodoroTimerScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
             }
         }
     }

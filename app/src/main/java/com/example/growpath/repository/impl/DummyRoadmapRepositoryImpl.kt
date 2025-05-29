@@ -5,7 +5,9 @@ import com.example.growpath.model.Roadmap
 import com.example.growpath.repository.RoadmapRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 
 class DummyRoadmapRepositoryImpl : RoadmapRepository {
     // Make roadmaps and milestones mutable
@@ -18,7 +20,7 @@ class DummyRoadmapRepositoryImpl : RoadmapRepository {
     )
 
     private val milestones = mutableMapOf(
-        "1" to mutableListOf( // Make inner lists mutable
+        "1" to mutableListOf(
             Milestone("101", "1", "Setup Development Environment", "Install Android Studio and configure your workspace", true),
             Milestone("102", "1", "Kotlin Fundamentals", "Learn basic Kotlin syntax and concepts", true),
             Milestone("103", "1", "Android Basic UI", "Create layouts and basic UI components", false),
@@ -47,12 +49,23 @@ class DummyRoadmapRepositoryImpl : RoadmapRepository {
             Milestone("502", "5", "Material 3 Components", "Use Material Design 3 components in your app", false)
         )
     )
+
     // Store milestone notes - milestoneId to note content
     private val milestoneNotes = mutableMapOf<String, String>()
 
-    override fun getRoadmaps(): Flow<List<Roadmap>> { // Changed to return Flow and non-suspend
-        // Recalculate progress for all roadmaps before emitting them in the flow
-        val currentRoadmaps = roadmaps.map { roadmap ->
+    // Create MutableStateFlow objects to maintain and emit updated data
+    private val _roadmapsFlow = MutableStateFlow<List<Roadmap>>(emptyList())
+    private val _milestonesFlow = MutableStateFlow<Map<String, List<Milestone>>>(emptyMap())
+
+    init {
+        // Initialize flows with data
+        updateRoadmapProgressAndEmit()
+        updateMilestonesAndEmit()
+    }
+
+    // Helper method to recalculate all roadmap progress values and emit updates
+    private fun updateRoadmapProgressAndEmit() {
+        val updatedRoadmaps = roadmaps.map { roadmap ->
             val roadmapMilestones = milestones[roadmap.id] ?: emptyList()
             if (roadmapMilestones.isNotEmpty()) {
                 val completedCount = roadmapMilestones.count { it.isCompleted }
@@ -66,7 +79,44 @@ class DummyRoadmapRepositoryImpl : RoadmapRepository {
                 }
             }
         }
-        return flowOf(currentRoadmaps.toList()) // Emit the current list once as a Flow
+
+        // Update the internal list with the new progress values
+        roadmaps.clear()
+        roadmaps.addAll(updatedRoadmaps)
+
+        // Emit the updated roadmap list to all collectors
+        _roadmapsFlow.value = roadmaps.toList()
+    }
+
+    // Helper method to emit milestone updates
+    private fun updateMilestonesAndEmit() {
+        _milestonesFlow.value = milestones.toMap()
+    }
+
+    override fun getRoadmaps(): Flow<List<Roadmap>> {
+        return _roadmapsFlow.asStateFlow()
+    }
+
+    override fun getRoadmapById(roadmapId: String): Flow<Roadmap?> {
+        return _roadmapsFlow.map { roadmapList ->
+            roadmapList.find { it.id == roadmapId }
+        }
+    }
+
+    override fun getMilestonesForRoadmap(roadmapId: String): Flow<List<Milestone>> {
+        return _milestonesFlow.map { milestonesMap ->
+            milestonesMap[roadmapId]?.map { milestone ->
+                milestone.copy(note = milestoneNotes[milestone.id])
+            } ?: emptyList()
+        }
+    }
+
+    override fun getMilestoneById(milestoneId: String): Flow<Milestone?> {
+        return _milestonesFlow.map { milestonesMap ->
+            milestonesMap.values.flatten().find { it.id == milestoneId }?.let { milestone ->
+                milestone.copy(note = milestoneNotes[milestone.id])
+            }
+        }
     }
 
     override suspend fun getRoadmapTitle(roadmapId: String): String {
@@ -74,22 +124,10 @@ class DummyRoadmapRepositoryImpl : RoadmapRepository {
         return roadmaps.find { it.id == roadmapId }?.title ?: "Unknown Roadmap"
     }
 
-    override suspend fun getMilestonesForRoadmap(roadmapId: String): List<Milestone> {
-        delay(10) // Simulate network delay
-        return milestones[roadmapId]?.map { milestone ->
-            milestone.copy(note = milestoneNotes[milestone.id])
-        } ?: emptyList()
-    }
-
-    override suspend fun getMilestoneById(milestoneId: String): Milestone? {
-        delay(10) // Simulate network delay
-        val milestone = milestones.values.flatten().find { it.id == milestoneId }
-        return milestone?.copy(note = milestoneNotes[milestoneId])
-    }
-
     override suspend fun updateMilestoneCompletion(milestoneId: String, isCompleted: Boolean) {
         delay(10) // Simulate network delay
         var roadmapToUpdateId: String? = null
+
         milestones.forEach { (rId, mList) ->
             val milestoneIndex = mList.indexOfFirst { it.id == milestoneId }
             if (milestoneIndex != -1) {
@@ -99,24 +137,17 @@ class DummyRoadmapRepositoryImpl : RoadmapRepository {
             }
         }
 
-        roadmapToUpdateId?.let { rId ->
-            val roadmapIndex = roadmaps.indexOfFirst { it.id == rId }
-            if (roadmapIndex != -1) {
-                val currentRoadmap = roadmaps[roadmapIndex]
-                val roadmapMilestones = milestones[rId] ?: emptyList()
-                if (roadmapMilestones.isNotEmpty()) {
-                    val completedCount = roadmapMilestones.count { it.isCompleted }
-                    val newProgress = completedCount.toFloat() / roadmapMilestones.size
-                    roadmaps[roadmapIndex] = currentRoadmap.copy(progress = newProgress)
-                } else {
-                    roadmaps[roadmapIndex] = currentRoadmap.copy(progress = if (currentRoadmap.progress == 1.0f && isCompleted) 1.0f else 0.0f)
-                }
-            }
-        }
+        // Emit updates after modifying the data
+        updateRoadmapProgressAndEmit()
+        updateMilestonesAndEmit()
     }
 
     override suspend fun updateMilestoneNote(milestoneId: String, noteContent: String) {
         delay(10)
         milestoneNotes[milestoneId] = noteContent
+
+        // Emit milestone updates after note changes
+        updateMilestonesAndEmit()
     }
 }
+

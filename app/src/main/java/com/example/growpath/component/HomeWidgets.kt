@@ -61,17 +61,7 @@ fun getHomeWidgets(navController: NavController? = null): List<HomeWidget> {
             icon = Icons.Default.Explore,
             primaryColor = Color(0xFF2196F3),
             secondaryColor = Color(0xFF0D47A1),
-            action = {
-                navController?.let { navController ->
-                    navController.navigate(NavGraph.EXPLORE) {
-                        popUpTo(0) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
-            }
+            action = { navController?.navigate(NavGraph.EXPLORE) }
         ),
         HomeWidget(
             id = "achievements",
@@ -80,17 +70,7 @@ fun getHomeWidgets(navController: NavController? = null): List<HomeWidget> {
             icon = Icons.Default.EmojiEvents,
             primaryColor = Color(0xFFFF9800),
             secondaryColor = Color(0xFFE65100),
-            action = {
-                navController?.let { navController ->
-                    navController.navigate(NavGraph.ACHIEVEMENTS) {
-                        popUpTo(0) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
-            }
+            action = { navController?.navigate(NavGraph.ACHIEVEMENTS) }
         ),
         HomeWidget(
             id = "study_reminder",
@@ -99,7 +79,7 @@ fun getHomeWidgets(navController: NavController? = null): List<HomeWidget> {
             icon = Icons.Default.Alarm,
             primaryColor = Color(0xFFE91E63),
             secondaryColor = Color(0xFFC2185B),
-            action = { navController?.navigate(NavGraph.POMODORO) }
+            action = { /* Open reminder dialog */ }
         )
     )
 }
@@ -419,7 +399,7 @@ fun UpcomingMilestoneWidget(
             Spacer(modifier = Modifier.height(12.dp))
             
             LinearProgressIndicator(
-                progress = progress,
+                progress = { progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)

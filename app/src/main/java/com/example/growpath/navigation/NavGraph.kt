@@ -7,9 +7,10 @@ object NavGraph {
     const val MILESTONE = "milestone/{milestoneId}"
     const val ACHIEVEMENTS = "achievements"
     const val EXPLORE = "explore"
-    const val POMODORO = "pomodoro" // New route for Pomodoro screen
+    const val POMODORO = "pomodoro"
     const val NOTIFICATIONS = "notifications"
     const val ABOUT = "about"
+    const val POMODORO_TIMER = "pomodoro_timer"
 
     fun roadmapWithId(roadmapId: String): String = "roadmap/$roadmapId"
     fun milestoneWithId(milestoneId: String): String = "milestone/$milestoneId"

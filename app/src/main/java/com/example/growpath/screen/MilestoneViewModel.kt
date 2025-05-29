@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.catch
 
 data class MilestoneState(
     val milestone: Milestone? = null,
@@ -23,45 +24,45 @@ class MilestoneViewModel @Inject constructor(private val roadmapRepository: Road
     private val _state = MutableStateFlow(MilestoneState())
     val state: StateFlow<MilestoneState> = _state.asStateFlow()
 
+    private var currentMilestoneId: String? = null
+
     fun loadMilestone(milestoneId: String) {
+        // Avoid duplicate subscriptions
+        if (currentMilestoneId == milestoneId) return
+        currentMilestoneId = milestoneId
+
+        _state.update { it.copy(isLoading = true, error = null) }
+
+        // Subscribe to the Flow for this milestone
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            try {
-                // Ambil data milestone dari repository
-                val milestone = roadmapRepository.getMilestoneById(milestoneId)
-                _state.update {
-                    it.copy(
-                        milestone = milestone,
-                        isLoading = false
-                    )
+            roadmapRepository.getMilestoneById(milestoneId)
+                .catch { e ->
+                    _state.update {
+                        it.copy(
+                            error = "Failed to load milestone: ${e.message}",
+                            isLoading = false
+                        )
+                    }
                 }
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        error = "Failed to load milestone: ${e.message}",
-                        isLoading = false
-                    )
+                .collect { milestone ->
+                    _state.update {
+                        it.copy(
+                            milestone = milestone,
+                            isLoading = false,
+                            error = null
+                        )
+                    }
                 }
-            }
         }
     }
 
     fun toggleMilestoneCompletion(milestoneId: String, isCompleted: Boolean) {
         viewModelScope.launch {
             try {
-                // Update di repository
+                // Only need to call the repository method, the Flow will update automatically
                 roadmapRepository.updateMilestoneCompletion(milestoneId, isCompleted)
 
-                // Update state lokal
-                _state.update { currentState ->
-                    currentState.milestone?.let {
-                        if (it.id == milestoneId) {
-                            currentState.copy(milestone = it.copy(isCompleted = isCompleted))
-                        } else {
-                            currentState
-                        }
-                    } ?: currentState
-                }
+                // No need to manually update state - the Flow collector will receive the update
             } catch (e: Exception) {
                 _state.update {
                     it.copy(error = "Failed to update milestone: ${e.message}")
@@ -74,22 +75,11 @@ class MilestoneViewModel @Inject constructor(private val roadmapRepository: Road
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
-                // Panggil metode repository untuk update catatan
+                // Call repository method
                 roadmapRepository.updateMilestoneNote(milestoneId, noteContent)
 
-                // Update state lokal
-                _state.update { currentState ->
-                    currentState.milestone?.let {
-                        if (it.id == milestoneId) {
-                            currentState.copy(
-                                milestone = it.copy(note = noteContent),
-                                isLoading = false
-                            )
-                        } else {
-                            currentState.copy(isLoading = false)
-                        }
-                    } ?: currentState.copy(isLoading = false)
-                }
+                // No need to manually update state - the Flow collector will receive the update
+                _state.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
                 _state.update {
                     it.copy(
@@ -99,5 +89,10 @@ class MilestoneViewModel @Inject constructor(private val roadmapRepository: Road
                 }
             }
         }
+    }
+
+    // Function to trigger a manual refresh if needed
+    fun refresh() {
+        currentMilestoneId?.let { loadMilestone(it) }
     }
 }
