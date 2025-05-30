@@ -2,6 +2,7 @@ package com.example.growpath.repository.impl
 
 import com.example.growpath.data.NotificationRepository
 import com.example.growpath.model.Milestone
+import com.example.growpath.model.Note
 import com.example.growpath.model.Roadmap
 import com.example.growpath.repository.RoadmapRepository
 import com.example.growpath.screen.Notification
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import java.util.Date
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -43,8 +45,8 @@ class DummyRoadmapRepositoryImpl @Inject constructor(
         )
     )
 
-    // Store milestone notes - milestoneId to note content
-    private val milestoneNotes = mutableMapOf<String, String>()
+    // Store notes as a list of Note objects
+    private val notes = mutableListOf<Note>()
 
     // Track completed roadmaps to avoid duplicate notifications
     private val completedRoadmapIds = mutableSetOf<String>()
@@ -52,7 +54,7 @@ class DummyRoadmapRepositoryImpl @Inject constructor(
     // Create MutableStateFlow objects to maintain and emit updated data
     private val _roadmapsFlow = MutableStateFlow(roadmaps.toList())
     private val _milestonesFlow = MutableStateFlow(milestones.toMap())
-    private val _milestoneNotesFlow = MutableStateFlow(milestoneNotes.toMap())
+    private val _notesFlow = MutableStateFlow(notes.toList())
 
     // Implement the required methods from RoadmapRepository interface
     override fun getRoadmaps(): Flow<List<Roadmap>> {
@@ -107,9 +109,51 @@ class DummyRoadmapRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateMilestoneNote(milestoneId: String, noteContent: String) {
-        val updatedNotes = _milestoneNotesFlow.value.toMutableMap()
-        updatedNotes[milestoneId] = noteContent
-        _milestoneNotesFlow.value = updatedNotes
+        // Create a new note with unique id
+        val newNote = Note(
+            id = UUID.randomUUID().toString(),
+            milestoneId = milestoneId,
+            content = noteContent,
+            createdAt = System.currentTimeMillis()
+        )
+
+        // Add to the notes list
+        val updatedNotes = _notesFlow.value.toMutableList()
+        updatedNotes.add(newNote)
+        _notesFlow.value = updatedNotes
+    }
+
+    override suspend fun updateExistingNote(noteId: String, newContent: String) {
+        val updatedNotes = _notesFlow.value.toMutableList()
+        val noteIndex = updatedNotes.indexOfFirst { it.id == noteId }
+
+        if (noteIndex != -1) {
+            // Get the existing note
+            val existingNote = updatedNotes[noteIndex]
+
+            // Create updated note with new content and current timestamp
+            val updatedNote = existingNote.copy(
+                content = newContent,
+                createdAt = System.currentTimeMillis() // Update the timestamp to now
+            )
+
+            // Replace the old note with the updated one
+            updatedNotes[noteIndex] = updatedNote
+            _notesFlow.value = updatedNotes
+        }
+    }
+
+    override fun getNotesForMilestone(milestoneId: String): Flow<List<Note>> {
+        return _notesFlow.map { allNotes ->
+            allNotes.filter { it.milestoneId == milestoneId }
+                .sortedByDescending { it.createdAt }
+        }
+    }
+
+    override suspend fun deleteNote(noteId: String) {
+        val updatedNotes = _notesFlow.value.toMutableList()
+        updatedNotes.removeIf { it.id == noteId }
+        _notesFlow.value = updatedNotes
     }
 
     override suspend fun getRoadmapTitle(roadmapId: String): String {

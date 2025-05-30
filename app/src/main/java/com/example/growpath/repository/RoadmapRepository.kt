@@ -1,6 +1,7 @@
 package com.example.growpath.repository
 
 import com.example.growpath.model.Milestone
+import com.example.growpath.model.Note
 import com.example.growpath.model.Roadmap
 import kotlinx.coroutines.flow.Flow
 
@@ -20,6 +21,15 @@ interface RoadmapRepository {
     // Methods for modifying data - these should trigger updates in the Flows
     suspend fun updateMilestoneCompletion(milestoneId: String, isCompleted: Boolean)
     suspend fun updateMilestoneNote(milestoneId: String, noteContent: String)
+
+    // Update an existing note
+    suspend fun updateExistingNote(noteId: String, newContent: String)
+
+    // Get notes for a specific milestone
+    fun getNotesForMilestone(milestoneId: String): Flow<List<Note>>
+
+    // Delete a note by ID
+    suspend fun deleteNote(noteId: String)
 
     // Helper methods
     suspend fun getRoadmapTitle(roadmapId: String): String

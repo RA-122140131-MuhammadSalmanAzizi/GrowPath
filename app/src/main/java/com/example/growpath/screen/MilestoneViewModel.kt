@@ -3,6 +3,7 @@ package com.example.growpath.screen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.growpath.model.Milestone
+import com.example.growpath.model.Note
 import com.example.growpath.repository.RoadmapRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.catch
 
 data class MilestoneState(
     val milestone: Milestone? = null,
+    val notes: List<Note> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val showCompletionAnimation: Boolean = false
@@ -49,6 +51,28 @@ class MilestoneViewModel @Inject constructor(private val roadmapRepository: Road
                     _state.update {
                         it.copy(
                             milestone = milestone,
+                            isLoading = false,
+                            error = null
+                        )
+                    }
+                }
+        }
+
+        // Load notes for this milestone
+        viewModelScope.launch {
+            roadmapRepository.getNotesForMilestone(milestoneId)
+                .catch { e ->
+                    _state.update {
+                        it.copy(
+                            error = "Failed to load notes: ${e.message}",
+                            isLoading = false
+                        )
+                    }
+                }
+                .collect { notes ->
+                    _state.update {
+                        it.copy(
+                            notes = notes,
                             isLoading = false,
                             error = null
                         )
@@ -101,12 +125,32 @@ class MilestoneViewModel @Inject constructor(private val roadmapRepository: Road
         }
     }
 
-    fun deleteMilestoneNote(milestoneId: String) {
+    fun updateExistingNote(noteId: String, newContent: String) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
-                // Call repository method with empty string to clear the note
-                roadmapRepository.updateMilestoneNote(milestoneId, "")
+                // Call repository method to update the existing note
+                roadmapRepository.updateExistingNote(noteId, newContent)
+
+                // No need to manually update state - the Flow collector will receive the update
+                _state.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        error = "Failed to update note: ${e.message}",
+                        isLoading = false
+                    )
+                }
+            }
+        }
+    }
+
+    fun deleteNote(noteId: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            try {
+                // Call repository method to delete the note
+                roadmapRepository.deleteNote(noteId)
 
                 // No need to manually update state - the Flow collector will receive the update
                 _state.update { it.copy(isLoading = false) }
@@ -119,10 +163,5 @@ class MilestoneViewModel @Inject constructor(private val roadmapRepository: Road
                 }
             }
         }
-    }
-
-    // Function to trigger a manual refresh if needed
-    fun refresh() {
-        currentMilestoneId?.let { loadMilestone(it) }
     }
 }

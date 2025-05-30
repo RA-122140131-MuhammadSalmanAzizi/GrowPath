@@ -5,6 +5,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
@@ -40,15 +43,13 @@ fun MilestoneScreen(
 
     val state by viewModel.state.collectAsState()
     val milestone = state.milestone
+    val notes = state.notes
     val scrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showNoteDialog by remember { mutableStateOf(false) }
-    var noteContent by remember { mutableStateOf("") }
-
-    LaunchedEffect(milestone) {
-        milestone?.note?.let { noteContent = it }
-    }
+    var currentNoteContent by remember { mutableStateOf("") }
+    var selectedNoteId by remember { mutableStateOf<String?>(null) }
 
     // Show completion animation when state indicates
     if (state.showCompletionAnimation) {
@@ -56,6 +57,42 @@ fun MilestoneScreen(
             title = "${milestone?.title ?: "Milestone"} Completed!",
             onAnimationComplete = {
                 viewModel.dismissCompletionAnimation()
+            }
+        )
+    }
+
+    // Handle note dialog
+    if (showNoteDialog) {
+        NoteDialog(
+            initialContent = currentNoteContent,
+            onSave = { content ->
+                if (content.isNotBlank()) {
+                    if (selectedNoteId != null) {
+                        // Update existing note
+                        viewModel.updateExistingNote(selectedNoteId!!, content)
+                    } else {
+                        // Create new note
+                        milestone?.id?.let { milestoneId ->
+                            viewModel.updateMilestoneNote(milestoneId, content)
+                        }
+                    }
+                }
+                showNoteDialog = false
+                currentNoteContent = ""
+                selectedNoteId = null
+            },
+            onDismiss = {
+                showNoteDialog = false
+                currentNoteContent = ""
+                selectedNoteId = null
+            },
+            onDelete = selectedNoteId?.let { noteId ->
+                {
+                    viewModel.deleteNote(noteId)
+                    showNoteDialog = false
+                    currentNoteContent = ""
+                    selectedNoteId = null
+                }
             }
         )
     }
@@ -77,7 +114,11 @@ fun MilestoneScreen(
         floatingActionButton = {
             if (milestone != null) {
                 FloatingActionButton(
-                    onClick = { showNoteDialog = true },
+                    onClick = {
+                        currentNoteContent = ""
+                        selectedNoteId = null
+                        showNoteDialog = true
+                    },
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Icon(
@@ -187,59 +228,65 @@ fun MilestoneScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Note Card (if exists)
-                    milestone?.note?.takeIf { it.isNotBlank() }?.let { note ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-                            )
+                    // Notes Section
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
                         ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        Icons.Default.Edit,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.secondary
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "Personal Notes",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.secondary
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.secondary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = note,
+                                    text = "Journal Notes",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            if (notes.isEmpty()) {
+                                Text(
+                                    text = "No notes yet. Add your first note by clicking the + button.",
                                     style = MaterialTheme.typography.bodyMedium
                                 )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    TextButton(onClick = { showNoteDialog = true }) {
-                                        Text("Edit Note")
-                                    }
+                            } else {
+                                // Display notes
+                                notes.forEach { note ->
+                                    NoteCard(
+                                        note = note,
+                                        onEdit = {
+                                            currentNoteContent = note.content
+                                            selectedNoteId = note.id
+                                            showNoteDialog = true
+                                        },
+                                        onDelete = {
+                                            viewModel.deleteNote(note.id)
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
                                 }
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(16.dp))
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Other Resources Card
                     Card(
@@ -319,28 +366,101 @@ fun MilestoneScreen(
             }
         }
     }
+}
 
-    // Note Dialog
-    if (showNoteDialog) {
-        NoteDialog(
-            initialContent = noteContent,
-            onSave = { content ->
-                milestone?.id?.let {
-                    viewModel.updateMilestoneNote(it, content)
-                }
-                showNoteDialog = false
-            },
-            onDismiss = { showNoteDialog = false },
-            onDelete = milestone?.id?.let { milestoneId ->
-                // Only provide delete function if there's existing note content
-                if (noteContent.isNotBlank()) {
-                    {
-                        viewModel.deleteMilestoneNote(milestoneId)
-                        showNoteDialog = false
+@Composable
+fun NoteCard(
+    note: com.example.growpath.model.Note,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Delete Note") },
+            text = { Text("Are you sure you want to delete this note? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete()
+                        showDeleteConfirmation = false
                     }
-                } else null
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text("Cancel")
+                }
             }
         )
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Text(
+                text = note.content,
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
+            val formattedDate = dateFormat.format(Date(note.createdAt))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = formattedDate,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row {
+                    IconButton(
+                        onClick = onEdit,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Edit Note",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { showDeleteConfirmation = true },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete Note",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
