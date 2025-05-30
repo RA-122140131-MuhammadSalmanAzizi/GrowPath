@@ -6,10 +6,12 @@ import com.example.growpath.data.NotificationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import java.util.Date
+import java.util.UUID
 
 data class Notification(
-    val id: String = System.currentTimeMillis().toString(),
+    val id: String = UUID.randomUUID().toString(), // Using UUID instead of timestamp for truly unique IDs
     val title: String,
     val message: String,
     val timestamp: Date = Date(),
@@ -43,11 +45,24 @@ class NotificationsViewModel @Inject constructor(
                     unreadCount = unreadCount
                 )
             }
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(),
-            initialValue = Unit
-        )
+        }.launchIn(viewModelScope)  // Using launchIn instead of stateIn for this case
+
+        // Force refresh notifications from repository to ensure we have the latest data
+        refreshNotifications()
+    }
+
+    private fun refreshNotifications() {
+        // This will trigger the repository to emit the latest notifications
+        // No need to auto-generate notifications anymore
+        viewModelScope.launch {
+            // Simply refreshing the state without adding new notifications
+            _state.update { currentState ->
+                currentState.copy(
+                    notifications = notificationRepository.notificationsFlow.value,
+                    unreadCount = notificationRepository.unreadCountFlow.value
+                )
+            }
+        }
     }
 
     fun addNotification(title: String, message: String) {

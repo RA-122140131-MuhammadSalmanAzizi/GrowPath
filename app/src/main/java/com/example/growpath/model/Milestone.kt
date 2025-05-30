@@ -6,5 +6,7 @@ data class Milestone(
     val title: String,
     val description: String,
     val isCompleted: Boolean = false,
-    val note: String? = null
+    val note: String? = null,
+    val youtubeUrl: String? = null,
+    val documentationUrl: String? = null
 )
