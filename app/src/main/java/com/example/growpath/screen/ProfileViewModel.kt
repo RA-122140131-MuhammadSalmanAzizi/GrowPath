@@ -26,6 +26,11 @@ class ProfileViewModel @Inject constructor(private val userRepository: UserRepos
     private val _state = MutableStateFlow(ProfileState())
     val state: StateFlow<ProfileState> = _state.asStateFlow()
 
+    // Constants for profile validation
+    companion object {
+        const val MAX_DISPLAY_NAME_LENGTH = 20
+    }
+
     init {
         // Subscribe to user flow for real-time updates
         viewModelScope.launch {
@@ -34,6 +39,7 @@ class ProfileViewModel @Inject constructor(private val userRepository: UserRepos
             }
         }
 
+        // Load achievements
         loadAchievements()
     }
 
@@ -61,6 +67,14 @@ class ProfileViewModel @Inject constructor(private val userRepository: UserRepos
 
     fun updateProfile(displayName: String) {
         viewModelScope.launch {
+            // Validate display name length
+            if (displayName.length > MAX_DISPLAY_NAME_LENGTH) {
+                _state.update {
+                    it.copy(error = "Nama tidak boleh melebihi $MAX_DISPLAY_NAME_LENGTH karakter")
+                }
+                return@launch
+            }
+
             _state.update { it.copy(isLoading = true, error = null) }
             try {
                 userRepository.updateUserProfile(displayName)
@@ -98,19 +112,13 @@ class ProfileViewModel @Inject constructor(private val userRepository: UserRepos
     // Function to logout user
     fun logout() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
             try {
-                // Dummy logout implementation
                 // In a real app, this would call a logout method in UserRepository
-                // that would clear tokens, sessions, etc.
-
-                _state.update { it.copy(isLoading = false) }
+                // For now, we'll just update the state
+                _state.update { ProfileState() }
             } catch (e: Exception) {
                 _state.update {
-                    it.copy(
-                        error = "Failed to logout: ${e.message}",
-                        isLoading = false
-                    )
+                    it.copy(error = "Failed to logout: ${e.message}")
                 }
             }
         }

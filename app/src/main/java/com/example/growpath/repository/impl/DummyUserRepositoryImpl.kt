@@ -21,6 +21,11 @@ class DummyUserRepositoryImpl @Inject constructor(
     private val userPreferencesManager: UserPreferencesManager
 ) : UserRepository {
 
+    // Constants
+    companion object {
+        const val MAX_DISPLAY_NAME_LENGTH = 20
+    }
+
     // Create a repository scope for launching coroutines
     private val repositoryScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -126,6 +131,11 @@ class DummyUserRepositoryImpl @Inject constructor(
 
     override suspend fun updateUserProfile(displayName: String): User {
         delay(800) // Simulate network delay
+
+        // Validate display name length
+        if (displayName.length > MAX_DISPLAY_NAME_LENGTH) {
+            throw IllegalArgumentException("Display name cannot exceed $MAX_DISPLAY_NAME_LENGTH characters")
+        }
 
         // Save to persistent storage
         userPreferencesManager.saveUserName(displayName)

@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.growpath.model.Roadmap
 import com.example.growpath.model.Milestone
 import com.example.growpath.repository.RoadmapRepository
+import com.example.growpath.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,9 +25,9 @@ sealed class DashboardEvent {
 }
 
 data class DashboardState(
-    val userName: String = "Salman",
+    val userName: String = "User",
     val userLevel: Int = 1,
-    val userExperience: Int = 32,
+    val userExperience: Int = 0,
     val inProgressRoadmaps: List<Roadmap> = emptyList(),
     val completedRoadmaps: List<Roadmap> = emptyList(),
     val notStartedRoadmaps: List<Roadmap> = emptyList(),
@@ -36,7 +37,8 @@ data class DashboardState(
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val roadmapRepository: RoadmapRepository
+    private val roadmapRepository: RoadmapRepository,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DashboardState())
@@ -49,7 +51,24 @@ class DashboardViewModel @Inject constructor(
     val events = _events.asSharedFlow()
 
     init {
+        observeUser()
         observeRoadmaps()
+    }
+
+    private fun observeUser() {
+        viewModelScope.launch {
+            userRepository.getUserFlow().collect { user ->
+                user?.let {
+                    _state.update { currentState ->
+                        currentState.copy(
+                            userName = it.displayName,
+                            userLevel = it.level,
+                            userExperience = it.experience
+                        )
+                    }
+                }
+            }
+        }
     }
 
     private fun observeRoadmaps() {

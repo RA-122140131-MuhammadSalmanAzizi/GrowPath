@@ -128,11 +128,24 @@ fun ProfileScreen(
             title = { Text("Edit Profile") },
             text = {
                 Column {
+                    val maxLength = 20
+
                     OutlinedTextField(
                         value = editedDisplayName,
-                        onValueChange = { editedDisplayName = it },
+                        onValueChange = {
+                            // Batasi input hingga maksimal 20 karakter
+                            if (it.length <= maxLength) editedDisplayName = it
+                        },
                         label = { Text("Display Name") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        supportingText = {
+                            Text(
+                                text = "${editedDisplayName.length}/$maxLength",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.End,
+                            )
+                        },
+                        isError = editedDisplayName.length > maxLength
                     )
                     
                     Spacer(modifier = Modifier.height(8.dp))
@@ -150,7 +163,7 @@ fun ProfileScreen(
                         viewModel.updateProfile(editedDisplayName)
                         showEditProfileDialog = false
                     },
-                    enabled = editedDisplayName.isNotBlank()
+                    enabled = editedDisplayName.isNotBlank() && editedDisplayName.length <= 20
                 ) {
                     Text("Save")
                 }
