@@ -1,6 +1,7 @@
 package com.example.growpath.repository.impl
 
 import com.example.growpath.data.NotificationRepository
+import com.example.growpath.data.UserPreferencesManager
 import com.example.growpath.model.Milestone
 import com.example.growpath.model.Note
 import com.example.growpath.model.Roadmap
@@ -12,6 +13,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.util.Date
 import java.util.UUID
 import javax.inject.Inject
@@ -20,7 +24,8 @@ import javax.inject.Singleton
 @Singleton
 class DummyRoadmapRepositoryImpl @Inject constructor(
     private val notificationRepository: NotificationRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val userPreferencesManager: UserPreferencesManager // Menambahkan UserPreferencesManager
 ) : RoadmapRepository {
     // Constants for XP rewards
     companion object {
@@ -174,6 +179,26 @@ class DummyRoadmapRepositoryImpl @Inject constructor(
         return roadmaps.find { it.id == roadmapId }?.title ?: "Unknown Roadmap"
     }
 
+    // Implementasi metode untuk menandai roadmap terakhir dibuka
+    override suspend fun markRoadmapAsLastOpened(roadmapId: String) {
+        // Simpan ID roadmap terakhir dibuka ke UserPreferencesManager
+        userPreferencesManager.saveLastOpenedRoadmapId(roadmapId)
+    }
+
+    // Metode untuk mendapatkan roadmap terakhir yang dibuka
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun getLastOpenedRoadmap(): Flow<Roadmap?> {
+        return userPreferencesManager.lastOpenedRoadmapFlow
+            .flatMapLatest { lastOpenedId ->
+                if (lastOpenedId != null) {
+                    getRoadmapById(lastOpenedId)
+                } else {
+                    // Jika belum ada roadmap yang pernah dibuka, kembalikan null
+                    flow { emit(null) }
+                }
+            }
+    }
+
     // Helper methods
     private fun updateRoadmapProgress(roadmapId: String) {
         val roadmapMilestones = _milestonesFlow.value[roadmapId] ?: return
@@ -202,24 +227,18 @@ class DummyRoadmapRepositoryImpl @Inject constructor(
         // Mark as notified
         completedRoadmapIds.add(roadmapId)
 
-        // Add a notification for roadmap completion
-        val notification = Notification(
-            id = "roadmap_${roadmapId}_${Date().time}",
-            title = "Roadmap Completed!",
-            message = "Congratulations on completing ${roadmap.title}!",
-            timestamp = Date(),
-            isRead = false
-        )
+        // TODO: Uncomment and use this code when notification repository is fully implemented
+        // Create a notification object for roadmap completion
+        // val notification = Notification(
+        //     id = "roadmap_${roadmapId}_${Date().time}",
+        //     title = "Roadmap Completed!",
+        //     message = "Congratulations on completing ${roadmap.title}!",
+        //     timestamp = Date(),
+        //     isRead = false
+        // )
+        // notificationRepository.addNotification(notification)
 
         // Award bonus XP for completing the entire roadmap
         userRepository.addExperiencePoints(XP_ROADMAP_COMPLETION)
-
-        // Simulate delay for network operation
-        delay(500)
-
-        // We would normally call the notification repository method here
-        // This is just a placeholder, you'll need to implement the actual method
-        // in your NotificationRepository class
-        // notificationRepository.addNotification(notification)
     }
 }

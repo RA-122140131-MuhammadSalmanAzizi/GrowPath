@@ -25,6 +25,7 @@ class UserPreferencesManager @Inject constructor(
     private val _userPhotoUrlFlow = MutableStateFlow<String?>(null)
     private val _userThemeFlow = MutableStateFlow<String?>(null)
     private val _userLanguageFlow = MutableStateFlow<String?>(null)
+    private val _lastOpenedRoadmapFlow = MutableStateFlow<String?>(null)
 
     init {
         // Initialize flows with saved preferences
@@ -33,6 +34,7 @@ class UserPreferencesManager @Inject constructor(
         _userPhotoUrlFlow.value = getUserPhotoUrl()
         _userThemeFlow.value = getUserTheme()
         _userLanguageFlow.value = getUserLanguage()
+        _lastOpenedRoadmapFlow.value = getLastOpenedRoadmapId()
     }
 
     // Keys for preferences
@@ -42,6 +44,7 @@ class UserPreferencesManager @Inject constructor(
         const val USER_PHOTO_URL = "user_photo_url"
         const val USER_THEME = "user_theme"
         const val USER_LANGUAGE = "user_language"
+        const val LAST_OPENED_ROADMAP = "last_opened_roadmap"
     }
 
     // Get user name as a Flow
@@ -59,6 +62,9 @@ class UserPreferencesManager @Inject constructor(
     // Get user language preference as a Flow
     val userLanguageFlow: Flow<String?> = _userLanguageFlow.asStateFlow()
 
+    // Get last opened roadmap as a Flow
+    val lastOpenedRoadmapFlow: Flow<String?> = _lastOpenedRoadmapFlow.asStateFlow()
+
     // Get methods that directly access SharedPreferences
     private fun getUserName(): String? =
         sharedPreferences.getString(PreferenceKeys.USER_NAME, null)
@@ -74,6 +80,11 @@ class UserPreferencesManager @Inject constructor(
 
     private fun getUserLanguage(): String? =
         sharedPreferences.getString(PreferenceKeys.USER_LANGUAGE, null)
+
+    // Get last opened roadmap
+    fun getLastOpenedRoadmapId(): String? {
+        return sharedPreferences.getString(PreferenceKeys.LAST_OPENED_ROADMAP, null)
+    }
 
     // Save user name
     suspend fun saveUserName(name: String) {
@@ -107,6 +118,14 @@ class UserPreferencesManager @Inject constructor(
     suspend fun saveUserLanguage(language: String) {
         sharedPreferences.edit().putString(PreferenceKeys.USER_LANGUAGE, language).apply()
         _userLanguageFlow.value = language
+    }
+
+    // Save last opened roadmap
+    fun saveLastOpenedRoadmapId(roadmapId: String) {
+        sharedPreferences.edit()
+            .putString(PreferenceKeys.LAST_OPENED_ROADMAP, roadmapId)
+            .apply()
+        _lastOpenedRoadmapFlow.value = roadmapId
     }
 
     // Clear all preferences (for logout)

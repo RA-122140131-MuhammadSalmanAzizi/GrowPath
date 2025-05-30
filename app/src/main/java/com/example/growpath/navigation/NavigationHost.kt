@@ -120,6 +120,20 @@ fun NavigationHost(
                 }
                 composable(NavGraph.NOTIFICATIONS) {
                     NotificationsScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onNotificationClick = { notificationId ->
+                            navController.navigate(NavGraph.notificationDetailWithId(notificationId))
+                        }
+                    )
+                }
+
+                composable(
+                    route = NavGraph.NOTIFICATION_DETAIL,
+                    arguments = listOf(navArgument("notificationId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val notificationId = backStackEntry.arguments?.getString("notificationId") ?: return@composable
+                    NotificationDetailScreen(
+                        notificationId = notificationId,
                         onBackClick = { navController.popBackStack() }
                     )
                 }

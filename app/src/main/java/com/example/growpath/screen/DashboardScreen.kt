@@ -36,9 +36,9 @@ import com.example.growpath.component.UpcomingMilestoneWidget
 import com.example.growpath.component.getHomeWidgets
 import com.example.growpath.model.Roadmap
 import com.example.growpath.navigation.NavGraph
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
-import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +52,7 @@ fun DashboardScreen(
     val state by viewModel.state.collectAsState()
     val notificationsState by notificationsViewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val refreshState = rememberSwipeRefreshState(isRefreshing = state.isLoading)
+    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = state.isLoading)
 
     LaunchedEffect(key1 = state.error) {
         state.error?.let { error ->
@@ -134,9 +134,9 @@ fun DashboardScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        // Using SwipeRefresh to implement pull-to-refresh functionality
+        // Using Box with swipeRefresh modifier to implement pull-to-refresh functionality
         SwipeRefresh(
-            state = refreshState,
+            state = swipeRefreshState,
             onRefresh = {
                 // Play a sound effect when refresh is released
                 navController?.context?.let { context ->
@@ -149,16 +149,7 @@ fun DashboardScreen(
                 }
                 // Reload page data
                 viewModel.onRefresh()
-            },
-            indicator = { swipeRefreshState, refreshTriggerDistance ->
-                // Using the standard SwipeRefreshIndicator from Accompanist library
-                com.google.accompanist.swiperefresh.SwipeRefreshIndicator(
-                    state = swipeRefreshState,
-                    refreshTriggerDistance = refreshTriggerDistance,
-                    scale = true // Enables the default scaling animation for the indicator
-                )
-            },
-            indicatorPadding = PaddingValues(top = 16.dp)
+            }
         ) {
             LazyColumn(
                 modifier = Modifier
@@ -177,14 +168,6 @@ fun DashboardScreen(
                     )
                 }
 
-                // Home Widgets Section (menggantikan Quick Actions)
-                item {
-                    HomeWidgetsGrid(
-                        widgets = getHomeWidgets(navController),
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                }
-
                 // Statistics Section
                 item {
                     HomeStatisticsWidget(
@@ -195,81 +178,267 @@ fun DashboardScreen(
                     )
                 }
 
-                // Continue Learning Widget
-                if (state.inProgressRoadmaps.isNotEmpty()) {
-                    item {
+                // Home Widget Section (Pomodoro)
+                item {
+                    HomeWidgetsGrid(
+                        widgets = getHomeWidgets(navController),
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
+
+                // Continue Learning Widget - menampilkan roadmap terakhir yang dibuka
+                item {
+                    // Tampilkan roadmap terakhir yang dibuka jika ada, jika tidak tampilkan roadmap yang sedang in progress
+                    if (state.lastOpenedRoadmap != null) {
+                        // Menggunakan roadmap terakhir dibuka
+                        val lastRoadmap = state.lastOpenedRoadmap
+                        UpcomingMilestoneWidget(
+                            title = lastRoadmap?.title ?: "Unknown Title",
+                            description = lastRoadmap?.description ?: "No description available",
+                            progress = lastRoadmap?.progress ?: 0f,
+                            onClick = {
+                                lastRoadmap?.id?.let { id ->
+                                    viewModel.onRoadmapClick(id)
+                                    onRoadmapClick(id)
+                                }
+                            },
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    } else if (state.inProgressRoadmaps.isNotEmpty()) {
+                        // Fallback ke roadmap pertama dalam daftar "In Progress"
                         val firstInProgress = state.inProgressRoadmaps.first()
                         UpcomingMilestoneWidget(
                             title = firstInProgress.title,
                             description = firstInProgress.description,
                             progress = firstInProgress.progress,
-                            onClick = { onRoadmapClick(firstInProgress.id) },
+                            onClick = {
+                                viewModel.onRoadmapClick(firstInProgress.id)
+                                onRoadmapClick(firstInProgress.id)
+                            },
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
                     }
                 }
 
                 // In Progress Roadmaps
-                if (state.inProgressRoadmaps.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = "In Progress",
-                            icon = Icons.Default.Timeline,
-                            count = state.inProgressRoadmaps.size,
-                            navController = navController,
-                            categoryType = "in_progress"
-                        )
-                    }
+                item {
+                    SectionHeader(title = "In Progress",
+                                  subtitle = "Continue your learning journey",
+                                  icon = Icons.Default.School)
 
-                    items(state.inProgressRoadmaps) { roadmap ->
-                        RoadmapCardEnhanced(
-                            roadmap = roadmap,
-                            onClick = { onRoadmapClick(roadmap.id) }
+                    if (state.inProgressRoadmaps.isEmpty()) {
+                        EmptyStateMessage(
+                            message = "No roadmaps in progress. Start a new journey!",
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
+                    } else {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(state.inProgressRoadmaps) { roadmap ->
+                                RoadmapCard(
+                                    roadmap = roadmap,
+                                    onClick = {
+                                        viewModel.onRoadmapClick(roadmap.id)
+                                        onRoadmapClick(roadmap.id)
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
 
-                // Not Started Roadmaps
-                if (state.notStartedRoadmaps.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = "Not Started",
-                            icon = Icons.Default.PlayCircleOutline,
-                            count = state.notStartedRoadmaps.size,
-                            navController = navController,
-                            categoryType = "not_started"
-                        )
-                    }
+                // Popular Roadmaps updated to Favorite Roadmaps
+                item {
+                    SectionHeader(title = "Favorite",
+                                  subtitle = "Your saved learning paths",
+                                  icon = Icons.Default.Favorite)
 
-                    items(state.notStartedRoadmaps) { roadmap ->
-                        RoadmapCardEnhanced(
-                            roadmap = roadmap,
-                            onClick = { onRoadmapClick(roadmap.id) }
+                    if (state.favoriteRoadmaps.isEmpty()) {
+                        EmptyStateMessage(
+                            message = "No favorite roadmaps yet. Add some from Explore!",
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
+                    } else {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(state.favoriteRoadmaps) { roadmap ->
+                                RoadmapCard(
+                                    roadmap = roadmap,
+                                    onClick = {
+                                        viewModel.onRoadmapClick(roadmap.id)
+                                        onRoadmapClick(roadmap.id)
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
 
                 // Completed Roadmaps
-                if (state.completedRoadmaps.isNotEmpty()) {
-                    item {
-                        SectionHeader(
-                            title = "Completed",
-                            icon = Icons.Default.CheckCircle,
-                            count = state.completedRoadmaps.size,
-                            navController = navController,
-                            categoryType = "completed"
-                        )
-                    }
+                item {
+                    SectionHeader(title = "Completed",
+                                  subtitle = "Your achievements",
+                                  icon = Icons.Default.Check)
 
-                    items(state.completedRoadmaps) { roadmap ->
-                        RoadmapCardEnhanced(
-                            roadmap = roadmap,
-                            onClick = { onRoadmapClick(roadmap.id) }
+                    if (state.completedRoadmaps.isEmpty()) {
+                        EmptyStateMessage(
+                            message = "No completed roadmaps yet. Keep learning!",
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
+                    } else {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(state.completedRoadmaps) { roadmap ->
+                                RoadmapCard(
+                                    roadmap = roadmap,
+                                    isCompleted = true,
+                                    onClick = {
+                                        viewModel.onRoadmapClick(roadmap.id)
+                                        onRoadmapClick(roadmap.id)
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun SectionHeader(
+    title: String,
+    subtitle: String,
+    icon: ImageVector
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+fun RoadmapCard(
+    roadmap: Roadmap,
+    isCompleted: Boolean = false,
+    onClick: () -> Unit
+) {
+    // Changed the backgroundColor to white (Color.White) as requested
+    val backgroundColor = Color.White
+
+    Card(
+        modifier = Modifier
+            .width(180.dp)
+            .height(160.dp)
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Title and description
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = roadmap.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = roadmap.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Progress indicator and completion status
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (isCompleted) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Completed",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Completed",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    LinearProgressIndicator(
+                        progress = { roadmap.progress },
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "${(roadmap.progress * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EmptyStateMessage(
+    message: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(100.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
     }
 }
 
@@ -280,148 +449,124 @@ fun UserProgressCard(
     userExperience: Int,
     onProfileClick: () -> Unit
 ) {
-    val gradientBrush = Brush.linearGradient(
-        colors = listOf(
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f)
-        )
-    )
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .shadow(
-                elevation = 6.dp,
-                shape = RoundedCornerShape(16.dp),
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-            ),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+            .padding(16.dp)
+            .clickable(onClick = onProfileClick),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Box(
             modifier = Modifier
-                .background(brush = gradientBrush)
-                .padding(16.dp)
+                .fillMaxWidth()
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xFF2196F3),
+                            Color(0xFF03A9F4)
+                        )
+                    )
+                )
         ) {
-            Column {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
+            ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // User Avatar
-                    Surface(
+                    // User avatar
+                    Box(
                         modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape),
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
+                            .size(60.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Avatar",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .padding(12.dp)
+                            Icons.Default.Person,
+                            contentDescription = "User Avatar",
+                            tint = Color.White,
+                            modifier = Modifier.size(32.dp)
                         )
                     }
 
-                    Spacer(Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
 
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "Welcome back,",
+                            text = "Welcome back,",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                            color = Color.White.copy(alpha = 0.8f)
                         )
                         Text(
-                            userName.ifBlank { "User" },
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.Bold
+                            text = userName,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
                     }
 
-                    Spacer(Modifier.weight(1f))
-
-                    // Level badge
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
-                        modifier = Modifier.size(48.dp)
+                    BadgeBox(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(alpha = 0.2f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Outlined.Star,
+                                contentDescription = "Level",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "$userLevel",
-                                style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontWeight = FontWeight.Bold
+                                text = "Level $userLevel",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White
                             )
                         }
                     }
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // XP Progress section
+                // Level progress
                 Column {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            "Level Progress",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onPrimary
+                            text = "$userExperience XP",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White
                         )
-
+                        val nextLevelXp = userLevel * 1000
                         Text(
-                            "${userExperience % 100}/100 XP",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimary
+                            text = "Next: $nextLevelXp XP",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.8f)
                         )
                     }
 
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
+                    // Progress bar for level
+                    val progress = (userExperience % 1000) / 1000f
                     LinearProgressIndicator(
-                        progress = { (userExperience % 100) / 100f },
+                        progress = { progress },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(8.dp)
                             .clip(RoundedCornerShape(4.dp)),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        trackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
+                        color = Color.White,
+                        trackColor = Color.White.copy(alpha = 0.3f)
                     )
-
-                    Spacer(Modifier.height(8.dp))
-
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            "Total: ${userExperience} XP",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                        )
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Outlined.Star,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                "Next level: ${(userLevel + 1)}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -429,289 +574,12 @@ fun UserProgressCard(
 }
 
 @Composable
-fun QuickActionsSection(
-    navController: NavController? = null
+fun BadgeBox(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
 ) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Text(
-            "Quick Actions",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
-
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(vertical = 8.dp)
-        ) {
-            item {
-                QuickActionItem(
-                    icon = Icons.Default.Add,
-                    title = "New Roadmap",
-                    color = MaterialTheme.colorScheme.primary,
-                    onClick = { /* TODO: Add new roadmap functionality */ }
-                )
-            }
-            item {
-                QuickActionItem(
-                    icon = Icons.Default.Search,
-                    title = "Explore",
-                    color = MaterialTheme.colorScheme.secondary,
-                    onClick = { navController?.navigate(NavGraph.EXPLORE) }
-                )
-            }
-            item {
-                QuickActionItem(
-                    icon = Icons.Default.CheckCircle,
-                    title = "Milestones",
-                    color = MaterialTheme.colorScheme.tertiary,
-                    // Just navigate to the first roadmap for now as an example
-                    onClick = { navController?.navigate(NavGraph.roadmapWithId("1")) }
-                )
-            }
-            item {
-                QuickActionItem(
-                    icon = Icons.Default.Star,
-                    title = "Achievements",
-                    color = Color(0xFFFFA000),
-                    onClick = { navController?.navigate(NavGraph.ACHIEVEMENTS) }
-                )
-            }
-        }
+    Box(modifier = modifier) {
+        content()
     }
 }
 
-@Composable
-fun QuickActionItem(
-    icon: ImageVector,
-    title: String,
-    color: Color,
-    onClick: () -> Unit
-) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = color.copy(alpha = 0.1f),
-        modifier = Modifier.width(100.dp)
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .padding(vertical = 12.dp, horizontal = 8.dp)
-                .clickable(onClick = onClick)
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(32.dp)
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                title,
-                style = MaterialTheme.typography.labelMedium,
-                color = color
-            )
-        }
-    }
-}
-
-@Composable
-fun SectionHeader(
-    title: String,
-    icon: ImageVector,
-    count: Int,
-    navController: NavController? = null,
-    categoryType: String = ""
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(Modifier.width(8.dp))
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            modifier = Modifier.size(28.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    "$count",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
-        Spacer(Modifier.weight(1f))
-        TextButton(
-            onClick = {
-                // Navigate to the category view based on the type
-                when (categoryType) {
-                    "in_progress" -> navController?.navigate(NavGraph.EXPLORE + "?filter=in_progress")
-                    "not_started" -> navController?.navigate(NavGraph.EXPLORE + "?filter=not_started")
-                    "completed" -> navController?.navigate(NavGraph.EXPLORE + "?filter=completed")
-                    else -> navController?.navigate(NavGraph.EXPLORE)
-                }
-            }
-        ) {
-            Text("View All")
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun RoadmapCardEnhanced(
-    roadmap: Roadmap,
-    onClick: () -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .animateContentSize(animationSpec = tween(200))
-            .shadow(
-                elevation = 2.dp,
-                shape = RoundedCornerShape(12.dp),
-                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-            ),
-        shape = RoundedCornerShape(12.dp),
-        onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Roadmap Icon
-                val iconBgColor = when {
-                    roadmap.progress >= 1f -> MaterialTheme.colorScheme.tertiary
-                    roadmap.progress > 0f -> MaterialTheme.colorScheme.secondary
-                    else -> MaterialTheme.colorScheme.primary
-                }
-
-                val icon = when {
-                    roadmap.progress >= 1f -> Icons.Default.CheckCircle
-                    roadmap.progress > 0f -> Icons.Default.Timeline
-                    else -> Icons.Default.PlayCircleOutline
-                }
-
-                Surface(
-                    shape = CircleShape,
-                    color = iconBgColor.copy(alpha = 0.15f),
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        icon,
-                        contentDescription = null,
-                        tint = iconBgColor,
-                        modifier = Modifier
-                            .padding(12.dp)
-                            .size(24.dp)
-                    )
-                }
-
-                Spacer(Modifier.width(16.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = roadmap.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    Spacer(Modifier.height(4.dp))
-
-                    Text(
-                        text = roadmap.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = if (expanded) 10 else 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                IconButton(onClick = { expanded = !expanded }) {
-                    Icon(
-                        if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (expanded) "Show less" else "Show more"
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            // Progress section
-            Column {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "${(roadmap.progress * 100).toInt()}% Complete",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    val chipText = when {
-                        roadmap.progress >= 1f -> "Completed"
-                        roadmap.progress > 0f -> "In Progress"
-                        else -> "Not Started"
-                    }
-
-                    val chipColor = when {
-                        roadmap.progress >= 1f -> MaterialTheme.colorScheme.tertiary
-                        roadmap.progress > 0f -> MaterialTheme.colorScheme.secondary
-                        else -> MaterialTheme.colorScheme.primary
-                    }
-
-                    AssistChip(
-                        onClick = { /* no-op */ },
-                        label = { Text(chipText) },
-                        colors = AssistChipDefaults.assistChipColors(
-                            containerColor = chipColor.copy(alpha = 0.12f),
-                            labelColor = chipColor
-                        )
-                    )
-                }
-
-                Spacer(Modifier.height(8.dp))
-
-                LinearProgressIndicator(
-                    progress = { roadmap.progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp)),
-                    color = when {
-                        roadmap.progress >= 1f -> MaterialTheme.colorScheme.tertiary
-                        roadmap.progress > 0f -> MaterialTheme.colorScheme.secondary
-                        else -> MaterialTheme.colorScheme.primary
-                    },
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            }
-        }
-    }
-}

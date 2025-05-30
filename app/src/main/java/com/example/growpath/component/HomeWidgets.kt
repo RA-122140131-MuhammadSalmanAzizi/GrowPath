@@ -46,67 +46,17 @@ data class HomeWidget(
  */
 fun getHomeWidgets(navController: NavController? = null): List<HomeWidget> {
     return listOf(
-        HomeWidget(
-            id = "today_progress",
-            title = "Today's Progress",
-            description = "Continue your learning journey",
-            icon = Icons.Default.PlayArrow,
-            primaryColor = Color(0xFF4CAF50),
-            secondaryColor = Color(0xFF2E7D32),
-            action = {
-                navController?.navigate(NavGraph.roadmapWithId("1")) {
-                    // Allow navigation with back button working properly
-                    launchSingleTop = true
-                    restoreState = true
-                }
-            }
-        ),
-        HomeWidget(
-            id = "discover",
-            title = "Discover",
-            description = "Find new learning paths",
-            icon = Icons.Default.Explore,
-            primaryColor = Color(0xFF2196F3),
-            secondaryColor = Color(0xFF0D47A1),
-            action = {
-                navController?.navigate(NavGraph.EXPLORE) {
-                    // Use the same navigation pattern as the bottom bar
-                    popUpTo(navController.graph.findStartDestination().id) {
-                        saveState = true
-                    }
-                    launchSingleTop = true
-                    restoreState = true
-                }
-            }
-        ),
-        HomeWidget(
-            id = "achievements",
-            title = "Achievements",
-            description = "View your earned badges",
-            icon = Icons.Default.EmojiEvents,
-            primaryColor = Color(0xFFFF9800),
-            secondaryColor = Color(0xFFE65100),
-            action = {
-                navController?.navigate(NavGraph.ACHIEVEMENTS) {
-                    // Use the same navigation pattern as the bottom bar
-                    popUpTo(navController.graph.findStartDestination().id) {
-                        saveState = true
-                    }
-                    launchSingleTop = true
-                    restoreState = true
-                }
-            }
-        ),
+        // Only keep the Pomodoro widget with updated green colors
         HomeWidget(
             id = "pomodoro",
             title = "Pomodoro Timer",
             description = "Focus on your tasks",
             icon = Icons.Default.Timer,
-            primaryColor = Color(0xFFE91E63),
-            secondaryColor = Color(0xFFC2185B),
+            // Using green colors
+            primaryColor = Color(0xFF36B54A),  // Green color
+            secondaryColor = Color(0xFF2E7D32), // Darker green
             action = {
                 navController?.navigate(NavGraph.POMODORO_TIMER) {
-                    // Allow navigation with back button working properly
                     launchSingleTop = true
                     restoreState = true
                 }
@@ -120,25 +70,10 @@ fun HomeWidgetsGrid(
     widgets: List<HomeWidget>,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = "Widgets",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(vertical = 4.dp)
-        )
-        
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.height(180.dp), // Increased from 140dp to 180dp to show all items without scrolling
-            content = {
-                items(widgets) { widget ->
-                    HomeWidgetItem(widget = widget)
-                }
-            }
-        )
+    // Menghapus LazyVerticalGrid dan menggantinya dengan single widget item
+    if (widgets.isNotEmpty()) {
+        val widget = widgets[0] // Mengambil widget Pomodoro saja
+        HomeWidgetItem(widget = widget, modifier = modifier)
     }
 }
 
@@ -159,14 +94,14 @@ fun HomeWidgetItem(
         shadowElevation = 2.dp,
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(2.2f) // Increased aspect ratio to make items shorter
+            .height(60.dp) // Mengurangi tinggi dari sebelumnya (yang menggunakan aspectRatio)
             .clickable { widget.action?.invoke() }
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(brush = gradientBrush)
-                .padding(10.dp) // Further reduced padding
+                .padding(10.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxSize(),
@@ -177,7 +112,7 @@ fun HomeWidgetItem(
                     imageVector = widget.icon,
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(22.dp) // Smaller icon
+                    modifier = Modifier.size(20.dp) // Smaller icon
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
@@ -186,7 +121,7 @@ fun HomeWidgetItem(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = widget.title,
-                        style = MaterialTheme.typography.bodyMedium, // Smaller text style
+                        style = MaterialTheme.typography.bodyMedium,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,

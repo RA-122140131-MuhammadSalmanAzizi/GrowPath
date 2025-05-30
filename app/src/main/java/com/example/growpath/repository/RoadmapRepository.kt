@@ -33,4 +33,10 @@ interface RoadmapRepository {
 
     // Helper methods
     suspend fun getRoadmapTitle(roadmapId: String): String
+
+    // Mark a roadmap as the last opened one
+    suspend fun markRoadmapAsLastOpened(roadmapId: String)
+
+    // Get the last opened roadmap
+    fun getLastOpenedRoadmap(): Flow<Roadmap?>
 }

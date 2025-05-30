@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.catch
 import dagger.hilt.android.lifecycle.HiltViewModel // Added for Hilt
 import javax.inject.Inject // Added for Hilt
 import androidx.hilt.navigation.compose.hiltViewModel // Added for Hilt
+import com.example.growpath.component.RoadmapCardEnhanced // Added import for RoadmapCardEnhanced
 
 data class ExploreState(
     val searchQuery: String = "",
@@ -106,9 +107,11 @@ class ExploreViewModel @Inject constructor( // Added @Inject for Hilt
 @Composable
 fun ExploreScreen(
     onRoadmapClick: (String) -> Unit,
-    viewModel: ExploreViewModel = hiltViewModel() // NEW: Use Hilt to get the ViewModel
+    viewModel: ExploreViewModel = hiltViewModel(),
+    dashboardViewModel: DashboardViewModel = hiltViewModel() // Tambahkan akses ke DashboardViewModel
 ) {
     val state by viewModel.state.collectAsState()
+    val dashboardState by dashboardViewModel.state.collectAsState() // Untuk mengakses status favorit
 
     Scaffold(
         topBar = {
@@ -174,7 +177,9 @@ fun ExploreScreen(
                     items(state.filteredRoadmaps) { roadmap ->
                         RoadmapCardEnhanced(
                             roadmap = roadmap,
-                            onClick = { onRoadmapClick(roadmap.id) }
+                            isFavorite = dashboardState.favoriteRoadmaps.any { it.id == roadmap.id },
+                            onClick = { onRoadmapClick(roadmap.id) },
+                            onFavoriteClick = { dashboardViewModel.toggleFavorite(it) }
                         )
                     }
                 }

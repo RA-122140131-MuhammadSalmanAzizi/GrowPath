@@ -12,7 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -125,13 +125,8 @@ fun PomodoroTimerScreen(onBackClick: () -> Unit) {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                },
-                actions = {
-                    // Settings button
-                    IconButton(onClick = { showSettingsDialog = true }) {
-                        Icon(Icons.Default.Timer, contentDescription = "Timer Settings")
-                    }
                 }
+                // Removed settings button from here
             )
         }
     ) { paddingValues ->
@@ -163,22 +158,40 @@ fun PomodoroTimerScreen(onBackClick: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Timer display
-            Card(
-                modifier = Modifier
-                    .size(200.dp),
-                shape = RoundedCornerShape(100.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+            // Timer display with settings button
+            Box(contentAlignment = Alignment.Center) {
+                Card(
+                    modifier = Modifier
+                        .size(200.dp),
+                    shape = RoundedCornerShape(100.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
                 ) {
-                    Text(
-                        text = String.format("%02d:%02d", minutes, seconds),
-                        fontSize = 48.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isWorkPhase) workBackgroundColor else breakBackgroundColor
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = String.format("%02d:%02d", minutes, seconds),
+                            fontSize = 48.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isWorkPhase) workBackgroundColor else breakBackgroundColor
+                        )
+                    }
+                }
+
+                // Repositioned edit button to align with the bottom of the timer
+                IconButton(
+                    onClick = { showSettingsDialog = true },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 10.dp, y = -10.dp) // Changed to move button higher
+                        .size(48.dp)
+                        .background(Color.White, shape = RoundedCornerShape(24.dp))
+                ) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Edit Timer Settings",
+                        tint = if (isWorkPhase) workBackgroundColor else breakBackgroundColor
                     )
                 }
             }

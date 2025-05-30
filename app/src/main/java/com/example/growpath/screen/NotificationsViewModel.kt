@@ -8,14 +8,14 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.Date
-import java.util.UUID
 
 data class Notification(
-    val id: String = UUID.randomUUID().toString(), // Using UUID instead of timestamp for truly unique IDs
+    val id: String = System.currentTimeMillis().toString(),
     val title: String,
     val message: String,
     val timestamp: Date = Date(),
-    val isRead: Boolean = false
+    val isRead: Boolean = false,
+    val detailedContent: String = "" // Detailed content for notification details page
 )
 
 data class NotificationsState(
@@ -34,34 +34,22 @@ class NotificationsViewModel @Inject constructor(
     val state: StateFlow<NotificationsState> = _state.asStateFlow()
 
     init {
-        // Combine flows from repository to update the UI state
-        combine(
-            notificationRepository.notificationsFlow,
-            notificationRepository.unreadCountFlow
-        ) { notifications, unreadCount ->
-            _state.update { currentState ->
-                currentState.copy(
+        // Langsung memuat notifikasi saat inisialisasi
+        loadNotifications()
+    }
+
+    private fun loadNotifications() {
+        viewModelScope.launch {
+            // Memuat notifikasi dan unread count dari repository
+            combine(
+                notificationRepository.notificationsFlow,
+                notificationRepository.unreadCountFlow
+            ) { notifications, unreadCount ->
+                _state.value = _state.value.copy(
                     notifications = notifications,
                     unreadCount = unreadCount
                 )
-            }
-        }.launchIn(viewModelScope)  // Using launchIn instead of stateIn for this case
-
-        // Force refresh notifications from repository to ensure we have the latest data
-        refreshNotifications()
-    }
-
-    private fun refreshNotifications() {
-        // This will trigger the repository to emit the latest notifications
-        // No need to auto-generate notifications anymore
-        viewModelScope.launch {
-            // Simply refreshing the state without adding new notifications
-            _state.update { currentState ->
-                currentState.copy(
-                    notifications = notificationRepository.notificationsFlow.value,
-                    unreadCount = notificationRepository.unreadCountFlow.value
-                )
-            }
+            }.collect() // Mengumpulkan hasil kombinasi
         }
     }
 

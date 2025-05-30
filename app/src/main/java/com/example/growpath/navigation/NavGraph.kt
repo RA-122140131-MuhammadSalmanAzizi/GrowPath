@@ -10,9 +10,11 @@ object NavGraph {
     const val EXPLORE = "explore"
     const val POMODORO = "pomodoro"
     const val NOTIFICATIONS = "notifications"
+    const val NOTIFICATION_DETAIL = "notification_detail/{notificationId}"
     const val ABOUT = "about"
     const val POMODORO_TIMER = "pomodoro_timer"
 
     fun roadmapWithId(roadmapId: String): String = "roadmap/$roadmapId"
     fun milestoneWithId(milestoneId: String): String = "milestone/$milestoneId"
+    fun notificationDetailWithId(notificationId: String): String = "notification_detail/$notificationId"
 }

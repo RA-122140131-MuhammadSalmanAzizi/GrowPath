@@ -29,68 +29,84 @@ class NotificationRepository @Inject constructor() {
     }
 
     private fun loadSampleNotifications() {
+        val currentTime = System.currentTimeMillis()
+        val day = 24 * 60 * 60 * 1000L // One day in milliseconds
+
         val sampleNotifications = listOf(
-            // Welcome & Onboarding Notifications
+            // Module update notification with detailed content
             Notification(
-                title = "Welcome to GrowPath!",
-                message = "Start exploring roadmaps to begin your learning journey.",
-                timestamp = Date(System.currentTimeMillis() - 3600000) // 1 hour ago
-            ),
-            Notification(
-                title = "Thank you for joining GrowPath!",
-                message = "We're excited to help you achieve your learning goals. Explore our roadmaps to get started.",
-                timestamp = Date(System.currentTimeMillis() - 7200000) // 2 hours ago
-            ),
-            Notification(
-                title = "Complete your profile",
-                message = "Set your learning preferences to get personalized roadmap recommendations.",
-                timestamp = Date(System.currentTimeMillis() - 86400000) // 1 day ago
-            ),
-
-            // System Maintenance Notifications
-            Notification(
-                title = "Scheduled Maintenance",
-                message = "GrowPath will be undergoing maintenance on June 5, 2025, from 2:00-4:00 AM UTC. Brief service interruptions may occur.",
-                timestamp = Date(System.currentTimeMillis() - 172800000) // 2 days ago
-            ),
-            Notification(
-                title = "Maintenance Complete",
-                message = "System maintenance has been completed successfully. New features are now available!",
-                timestamp = Date(System.currentTimeMillis() - 259200000) // 3 days ago
-            ),
-            Notification(
-                title = "Server Optimization",
-                message = "We've optimized our servers for better performance. Enjoy faster roadmap loading times!",
-                timestamp = Date(System.currentTimeMillis() - 432000000) // 5 days ago
-            ),
-
-            // App Update Notifications
-            Notification(
-                title = "GrowPath v2.5.0 Available",
-                message = "Update to the latest version for new features including offline roadmap access and improved milestone tracking.",
-                timestamp = Date(System.currentTimeMillis() - 345600000) // 4 days ago
-            ),
-            Notification(
-                title = "Security Update Available",
-                message = "We've enhanced security in our latest update. Please update your app to stay protected.",
-                timestamp = Date(System.currentTimeMillis() - 518400000) // 6 days ago
-            ),
-            Notification(
-                title = "What's New in v2.5.0",
-                message = "Discover dark mode, custom roadmap creation, and progress analytics in our latest update!",
-                timestamp = Date(System.currentTimeMillis() - 345600000) // 4 days ago
+                id = "module-update-1",
+                title = "New Learning Modules Available",
+                message = "Check out our latest learning modules with practical exercises and real-world examples",
+                timestamp = Date(currentTime),
+                isRead = false,
+                detailedContent = """
+                    # New Learning Modules Available
+                    
+                    We're excited to announce several new learning modules that have been added to the GrowPath platform:
+                    
+                    ## Advanced GraphQL Integration
+                    
+                    This comprehensive module covers GraphQL implementation with practical exercises for:
+                    - Setting up GraphQL servers with Apollo
+                    - Building efficient queries and mutations
+                    - Real-time data with GraphQL subscriptions
+                    - Authentication and authorization in GraphQL APIs
+                    
+                    ## Machine Learning Fundamentals
+                    
+                    Learn the basics of machine learning with hands-on TensorFlow exercises:
+                    - Data preprocessing and cleaning
+                    - Building and training simple ML models
+                    - Model evaluation and improvement
+                    - Deploying ML models to production
+                    
+                    ## Cybersecurity Essentials
+                    
+                    Master the fundamentals of keeping applications secure:
+                    - Common web security vulnerabilities
+                    - Secure authentication implementation 
+                    - Data encryption best practices
+                    - Security testing methodologies
+                    
+                    Start learning today by browsing the Explore section!
+                """
             ),
 
-            // Content Notifications
+            // App update notification with detailed content
             Notification(
-                title = "New Android Development Roadmap",
-                message = "Check out the new Android Development roadmap with Jetpack Compose.",
-                timestamp = Date(System.currentTimeMillis() - 604800000) // 7 days ago
-            ),
-            Notification(
-                title = "Daily Reminder",
-                message = "Don't forget to check your progress on Kotlin Multiplatform roadmap.",
-                timestamp = Date(System.currentTimeMillis() - 691200000) // 8 days ago
+                id = "app-update-1",
+                title = "GrowPath App Update",
+                message = "We've fixed bugs and added new features to improve your learning experience",
+                timestamp = Date(currentTime - 3 * day),
+                isRead = false,
+                detailedContent = """
+                    # GrowPath App Update (v2.4.1)
+                    
+                    We're constantly working to improve your GrowPath experience. This update includes several bug fixes and new features:
+                    
+                    ## Bug Fixes
+                    
+                    - Fixed progress tracking issues in some learning paths
+                    - Resolved login issues some users were experiencing
+                    - Fixed screen flickering on some Android 12+ devices
+                    - Improved app stability and reduced crashes
+                    
+                    ## New Features
+                    
+                    - **Favorites System**: You can now mark roadmaps as favorites for quick access
+                    - **Improved UI**: Cleaner interface with better visibility and contrast
+                    - **Offline Mode**: Continue learning even without an internet connection
+                    - **Performance Optimizations**: Faster loading times and smoother animations
+                    
+                    ## Coming Soon
+                    
+                    - Group learning features
+                    - Custom learning path creation
+                    - Advanced analytics for tracking your progress
+                    
+                    Thanks for using GrowPath! We appreciate your feedback as we continue to improve.
+                """
             )
         )
 
@@ -99,38 +115,14 @@ class NotificationRepository @Inject constructor() {
     }
 
     fun markAsRead(notificationId: String) {
-        // Print debug info to see which notification ID we're marking as read
-        println("Marking notification as read: $notificationId")
-
         val updatedNotifications = _notificationsFlow.value.map { notification ->
             if (notification.id == notificationId) {
-                println("Found matching notification: ${notification.title}")
                 notification.copy(isRead = true)
             } else {
-                // Keep other notifications unchanged
                 notification
             }
         }
         _notificationsFlow.value = updatedNotifications
-        updateUnreadCount()
-    }
-
-    /**
-     * Sends a notification when a user completes all milestones in a roadmap
-     */
-    fun sendRoadmapCompletedNotification(roadmapId: String) {
-        val notification = Notification(
-            title = "Roadmap Completed!",
-            message = "Congratulations! You've completed all milestones in a roadmap.",
-            timestamp = Date()
-        )
-
-        _notificationsFlow.update { currentList ->
-            val newList = currentList.toMutableList()
-            newList.add(0, notification) // Add at the beginning of the list
-            newList
-        }
-
         updateUnreadCount()
     }
 

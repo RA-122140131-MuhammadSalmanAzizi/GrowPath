@@ -1,6 +1,5 @@
 package com.example.growpath.screen
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,7 +10,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,6 +28,7 @@ import java.util.*
 @Composable
 fun NotificationsScreen(
     onBackClick: () -> Unit,
+    onNotificationClick: (String) -> Unit, // Added parameter for notification click
     viewModel: NotificationsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -46,12 +48,6 @@ fun NotificationsScreen(
                 },
                 actions = {
                     if (state.notifications.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.markAllAsRead() }) {
-                            Icon(
-                                Icons.Default.DoneAll,
-                                contentDescription = "Mark all as read"
-                            )
-                        }
                         IconButton(onClick = { viewModel.clearNotifications() }) {
                             Icon(
                                 Icons.Default.DeleteSweep,
@@ -109,11 +105,33 @@ fun NotificationsScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(vertical = 12.dp)
             ) {
+                // Add "Mark All as Read" button at the top if there are unread notifications
+                if (state.unreadCount > 0) {
+                    item {
+                        Button(
+                            onClick = { viewModel.markAllAsRead() },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.DoneAll,
+                                contentDescription = "Mark all as read"
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Mark All as Read")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
+
                 items(state.notifications) { notification ->
                     NotificationItem(
                         notification = notification,
                         dateFormat = dateFormat,
-                        onMarkAsRead = { viewModel.markAsRead(notification.id) }
+                        onClick = { onNotificationClick(notification.id) } // Navigate to detail screen on click
                     )
                 }
             }
@@ -126,10 +144,8 @@ fun NotificationsScreen(
 fun NotificationItem(
     notification: Notification,
     dateFormat: SimpleDateFormat,
-    onMarkAsRead: () -> Unit
+    onClick: () -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -139,114 +155,51 @@ fun NotificationItem(
             else
                 MaterialTheme.colorScheme.surface
         ),
-        onClick = {
-            // Toggle expanded state on click
-            expanded = !expanded
-        }
+        onClick = onClick
     ) {
-        Column(modifier = Modifier.animateContentSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Read/unread indicator
-                if (!notification.isRead) {
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
-                    )
-                } else {
-                    Spacer(modifier = Modifier.width(12.dp))
-                }
-
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Read/unread indicator
+            if (!notification.isRead) {
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                )
+            } else {
                 Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = notification.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = if (!notification.isRead) FontWeight.Bold else FontWeight.Normal,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = notification.message,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = if (expanded) Int.MAX_VALUE else 2,
-                        overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = dateFormat.format(notification.timestamp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                    )
-                }
-
-                // Mark as read button - separate from Card's onClick
-                if (!notification.isRead) {
-                    IconButton(onClick = onMarkAsRead) {
-                        Icon(
-                            imageVector = Icons.Default.MarkEmailRead,
-                            contentDescription = "Mark as read",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                } else {
-                    // Show a "read" icon for already read notifications
-                    Icon(
-                        imageVector = Icons.Default.DoneAll,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                        modifier = Modifier.padding(12.dp)
-                    )
-                }
             }
 
-            // Expanded section with action buttons
-            if (expanded) {
-                Divider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    // Add any additional action buttons for expanded state
-                    if (!notification.isRead) {
-                        TextButton(onClick = onMarkAsRead) {
-                            Icon(
-                                imageVector = Icons.Default.DoneAll,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Mark as read")
-                        }
-                    }
+            Spacer(modifier = Modifier.width(12.dp))
 
-                    TextButton(onClick = { expanded = false }) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Close")
-                    }
-                }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = notification.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = if (!notification.isRead) FontWeight.Bold else FontWeight.Normal,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = notification.message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = dateFormat.format(notification.timestamp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
             }
         }
     }

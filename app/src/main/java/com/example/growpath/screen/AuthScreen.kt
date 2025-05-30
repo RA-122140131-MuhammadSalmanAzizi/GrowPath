@@ -76,16 +76,16 @@ fun AuthScreen(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text("Password") },
-                    modifier = Modifier.fillMaxWidth(),
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(
-                                imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
                                 contentDescription = if (passwordVisible) "Hide password" else "Show password"
                             )
                         }
-                    }
+                    },
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 // Error message
