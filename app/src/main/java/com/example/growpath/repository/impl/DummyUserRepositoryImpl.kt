@@ -24,6 +24,8 @@ class DummyUserRepositoryImpl @Inject constructor(
     // Constants
     companion object {
         const val MAX_DISPLAY_NAME_LENGTH = 20
+        const val XP_PER_LEVEL = 100 // Jumlah XP yang diperlukan untuk naik 1 level
+        const val XP_MILESTONE_COMPLETION = 25 // XP yang didapat saat menyelesaikan milestone
     }
 
     // Create a repository scope for launching coroutines
@@ -153,6 +155,35 @@ class DummyUserRepositoryImpl @Inject constructor(
 
         // Update in-memory model
         _user = _user.copy(photoUrl = photoUrl)
+        return _user
+    }
+
+    override suspend fun addExperiencePoints(xp: Int): User {
+        delay(300) // Simulate network delay
+
+        if (xp <= 0) {
+            return _user // Tidak ada perubahan jika XP <= 0
+        }
+
+        // Update experience user
+        val newExperience = _user.experience + xp
+        _user = _user.copy(experience = newExperience)
+
+        // Cek apakah perlu naik level
+        return checkAndProcessLevelUp()
+    }
+
+    override suspend fun checkAndProcessLevelUp(): User {
+        // Hitung berapa level yang seharusnya dimiliki pengguna berdasarkan XP
+        val xpPerLevel = XP_PER_LEVEL
+        val totalLevelsEarned = (_user.experience / xpPerLevel) + 1 // +1 karena level mulai dari 1
+
+        // Jika level seharusnya lebih tinggi, maka naikkan level pengguna
+        if (totalLevelsEarned > _user.level) {
+            _user = _user.copy(level = totalLevelsEarned)
+            // Di aplikasi nyata, kita mungkin ingin menampilkan animasi/notifikasi kenaikan level di sini
+        }
+
         return _user
     }
 }

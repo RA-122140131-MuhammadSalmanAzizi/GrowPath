@@ -5,6 +5,7 @@ import com.example.growpath.model.Milestone
 import com.example.growpath.model.Note
 import com.example.growpath.model.Roadmap
 import com.example.growpath.repository.RoadmapRepository
+import com.example.growpath.repository.UserRepository
 import com.example.growpath.screen.Notification
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -18,8 +19,15 @@ import javax.inject.Singleton
 
 @Singleton
 class DummyRoadmapRepositoryImpl @Inject constructor(
-    private val notificationRepository: NotificationRepository
+    private val notificationRepository: NotificationRepository,
+    private val userRepository: UserRepository
 ) : RoadmapRepository {
+    // Constants for XP rewards
+    companion object {
+        const val XP_MILESTONE_COMPLETION = 25 // XP yang diberikan saat menyelesaikan milestone
+        const val XP_ROADMAP_COMPLETION = 100 // XP yang diberikan saat menyelesaikan roadmap
+    }
+
     // Make roadmaps and milestones mutable
     private val roadmaps = mutableListOf(
         Roadmap("1", "Android Development Journey", "Master Android development from scratch to expert level", 0.35f),
@@ -81,6 +89,7 @@ class DummyRoadmapRepositoryImpl @Inject constructor(
 
     override suspend fun updateMilestoneCompletion(milestoneId: String, isCompleted: Boolean) {
         val allMilestones = _milestonesFlow.value.toMutableMap()
+        val previouslyCompleted = allMilestones.values.flatten().find { it.id == milestoneId }?.isCompleted ?: false
 
         // Find and update the milestone
         allMilestones.forEach { (roadmapId, roadmapMilestones) ->
@@ -102,6 +111,11 @@ class DummyRoadmapRepositoryImpl @Inject constructor(
 
                 // Check if roadmap is completed and send notification if it is
                 checkRoadmapCompletion(roadmapId)
+
+                // Berikan XP jika milestone baru diselesaikan (sebelumnya belum completed)
+                if (isCompleted && !previouslyCompleted) {
+                    userRepository.addExperiencePoints(XP_MILESTONE_COMPLETION)
+                }
 
                 return
             }
@@ -196,6 +210,9 @@ class DummyRoadmapRepositoryImpl @Inject constructor(
             timestamp = Date(),
             isRead = false
         )
+
+        // Award bonus XP for completing the entire roadmap
+        userRepository.addExperiencePoints(XP_ROADMAP_COMPLETION)
 
         // Simulate delay for network operation
         delay(500)

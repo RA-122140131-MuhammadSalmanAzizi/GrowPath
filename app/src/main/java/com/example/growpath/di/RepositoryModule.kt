@@ -18,8 +18,8 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideRoadmapRepository(notificationRepository: NotificationRepository): RoadmapRepository {
-        return DummyRoadmapRepositoryImpl(notificationRepository)
+    fun provideRoadmapRepository(notificationRepository: NotificationRepository, userRepository: UserRepository): RoadmapRepository {
+        return DummyRoadmapRepositoryImpl(notificationRepository, userRepository)
     }
 
     @Provides
