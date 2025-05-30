@@ -27,27 +27,14 @@ class ProfileViewModel @Inject constructor(private val userRepository: UserRepos
     val state: StateFlow<ProfileState> = _state.asStateFlow()
 
     init {
-        loadProfile()
-        loadAchievements()
-    }
-
-    private fun loadProfile() {
+        // Subscribe to user flow for real-time updates
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
-            try {
-                val user = userRepository.getUser()
-                _state.update {
-                    it.copy(user = user, isLoading = false)
-                }
-            } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        error = "Failed to load profile: ${e.message}",
-                        isLoading = false
-                    )
-                }
+            userRepository.getUserFlow().collect { user ->
+                _state.update { it.copy(user = user) }
             }
         }
+
+        loadAchievements()
     }
 
     private fun loadAchievements() {
@@ -76,10 +63,9 @@ class ProfileViewModel @Inject constructor(private val userRepository: UserRepos
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
-                val updatedUser = userRepository.updateUserProfile(displayName)
-                _state.update { state ->
-                    state.copy(user = updatedUser, isLoading = false)
-                }
+                userRepository.updateUserProfile(displayName)
+                // No need to update state manually as the Flow will handle it
+                _state.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
                 _state.update {
                     it.copy(
@@ -91,19 +77,34 @@ class ProfileViewModel @Inject constructor(private val userRepository: UserRepos
         }
     }
 
-    // Fungsi untuk logout pengguna
+    fun updateProfilePhoto(photoUrl: String?) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            try {
+                userRepository.updateUserPhoto(photoUrl)
+                // No need to update state manually as the Flow will handle it
+                _state.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        error = "Failed to update profile photo: ${e.message}",
+                        isLoading = false
+                    )
+                }
+            }
+        }
+    }
+
+    // Function to logout user
     fun logout() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
-                // Implementasi dummy logout
-                // Di aplikasi nyata, ini akan memanggil metode logout di UserRepository
-                // yang akan menghapus token, session, dll.
+                // Dummy logout implementation
+                // In a real app, this would call a logout method in UserRepository
+                // that would clear tokens, sessions, etc.
 
-                // Reset state aplikasi
-                _state.update {
-                    ProfileState(isLoading = false)
-                }
+                _state.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
                 _state.update {
                     it.copy(

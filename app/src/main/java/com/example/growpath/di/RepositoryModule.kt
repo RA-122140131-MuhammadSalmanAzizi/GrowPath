@@ -1,5 +1,7 @@
 package com.example.growpath.di
 
+import com.example.growpath.data.NotificationRepository
+import com.example.growpath.data.UserPreferencesManager
 import com.example.growpath.repository.RoadmapRepository
 import com.example.growpath.repository.UserRepository
 import com.example.growpath.repository.impl.DummyRoadmapRepositoryImpl
@@ -16,13 +18,13 @@ object RepositoryModule {
 
     @Provides
     @Singleton
-    fun provideRoadmapRepository(): RoadmapRepository {
-        return DummyRoadmapRepositoryImpl()
+    fun provideRoadmapRepository(notificationRepository: NotificationRepository): RoadmapRepository {
+        return DummyRoadmapRepositoryImpl(notificationRepository)
     }
 
     @Provides
     @Singleton
-    fun provideUserRepository(): UserRepository {
-        return DummyUserRepositoryImpl()
+    fun provideUserRepository(userPreferencesManager: UserPreferencesManager): UserRepository {
+        return DummyUserRepositoryImpl(userPreferencesManager)
     }
 }

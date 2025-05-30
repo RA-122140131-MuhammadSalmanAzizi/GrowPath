@@ -50,6 +50,16 @@ fun MilestoneScreen(
         milestone?.note?.let { noteContent = it }
     }
 
+    // Show completion animation when state indicates
+    if (state.showCompletionAnimation) {
+        CompletionAnimation(
+            title = "${milestone?.title ?: "Milestone"} Completed!",
+            onAnimationComplete = {
+                viewModel.dismissCompletionAnimation()
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -286,6 +296,24 @@ fun MilestoneScreen(
                         }
                     }
 
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Video Tutorials Section
+                    VideoTutorialsSection()
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Documentation Section
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+                        )
+                    ) {
+                        // ...existing code...
+                    }
+
                     Spacer(modifier = Modifier.height(80.dp)) // Space for FAB
                 }
             }
@@ -295,15 +323,23 @@ fun MilestoneScreen(
     // Note Dialog
     if (showNoteDialog) {
         NoteDialog(
-            noteContent = noteContent,
-            onNoteContentChanged = { noteContent = it },
-            onSaveClick = {
+            initialContent = noteContent,
+            onSave = { content ->
                 milestone?.id?.let {
-                    viewModel.updateMilestoneNote(it, noteContent)
+                    viewModel.updateMilestoneNote(it, content)
                 }
                 showNoteDialog = false
             },
-            onDismissClick = { showNoteDialog = false }
+            onDismiss = { showNoteDialog = false },
+            onDelete = milestone?.id?.let { milestoneId ->
+                // Only provide delete function if there's existing note content
+                if (noteContent.isNotBlank()) {
+                    {
+                        viewModel.deleteMilestoneNote(milestoneId)
+                        showNoteDialog = false
+                    }
+                } else null
+            }
         )
     }
 }

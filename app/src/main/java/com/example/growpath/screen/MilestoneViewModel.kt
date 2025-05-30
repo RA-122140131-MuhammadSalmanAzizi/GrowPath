@@ -16,7 +16,8 @@ import kotlinx.coroutines.flow.catch
 data class MilestoneState(
     val milestone: Milestone? = null,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val showCompletionAnimation: Boolean = false
 )
 
 @HiltViewModel
@@ -59,6 +60,11 @@ class MilestoneViewModel @Inject constructor(private val roadmapRepository: Road
     fun toggleMilestoneCompletion(milestoneId: String, isCompleted: Boolean) {
         viewModelScope.launch {
             try {
+                // If completing a milestone, show the animation
+                if (isCompleted) {
+                    _state.update { it.copy(showCompletionAnimation = true) }
+                }
+
                 // Only need to call the repository method, the Flow will update automatically
                 roadmapRepository.updateMilestoneCompletion(milestoneId, isCompleted)
 
@@ -69,6 +75,10 @@ class MilestoneViewModel @Inject constructor(private val roadmapRepository: Road
                 }
             }
         }
+    }
+
+    fun dismissCompletionAnimation() {
+        _state.update { it.copy(showCompletionAnimation = false) }
     }
 
     fun updateMilestoneNote(milestoneId: String, noteContent: String) {
@@ -84,6 +94,26 @@ class MilestoneViewModel @Inject constructor(private val roadmapRepository: Road
                 _state.update {
                     it.copy(
                         error = "Failed to update note: ${e.message}",
+                        isLoading = false
+                    )
+                }
+            }
+        }
+    }
+
+    fun deleteMilestoneNote(milestoneId: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            try {
+                // Call repository method with empty string to clear the note
+                roadmapRepository.updateMilestoneNote(milestoneId, "")
+
+                // No need to manually update state - the Flow collector will receive the update
+                _state.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        error = "Failed to delete note: ${e.message}",
                         isLoading = false
                     )
                 }
