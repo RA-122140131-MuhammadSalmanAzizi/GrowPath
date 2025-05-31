@@ -308,6 +308,12 @@ fun StatsSection(user: com.example.growpath.model.User?) {
             
             // Progress to next level
             Column {
+                // Gunakan konstanta XP per level yang sama dengan yang digunakan di aplikasi (1000)
+                val xpPerLevel = 1000
+                val currentLevelXp = user?.experience?.rem(xpPerLevel) ?: 0
+                val xpToNextLevel = xpPerLevel - currentLevelXp
+                val progress = currentLevelXp.toFloat() / xpPerLevel.toFloat()
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -318,7 +324,7 @@ fun StatsSection(user: com.example.growpath.model.User?) {
                     )
                     
                     Text(
-                        text = "${user?.experience?.rem(100) ?: 0}/100 XP",
+                        text = "$currentLevelXp/$xpPerLevel XP",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -327,7 +333,7 @@ fun StatsSection(user: com.example.growpath.model.User?) {
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 LinearProgressIndicator(
-                    progress = { (user?.experience?.rem(100) ?: 0) / 100f },
+                    progress = { progress },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp)
