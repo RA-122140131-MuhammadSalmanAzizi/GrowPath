@@ -153,7 +153,7 @@ class DummyUserRepositoryImpl @Inject constructor(
         return _user
     }
 
-    override suspend fun updateUserPhoto(photoUrl: String?): User {
+    override suspend fun updateProfilePhoto(photoUrl: String?): User {
         delay(800) // Simulate network delay
 
         // Save to persistent storage
@@ -196,5 +196,46 @@ class DummyUserRepositoryImpl @Inject constructor(
         }
 
         return _user
+    }
+
+    // Implementasi metode autentikasi
+    override suspend fun login(username: String, password: String): Boolean {
+        delay(1000) // Simulate network delay for authentication
+        return userPreferencesManager.verifyCredentials(username, password)
+    }
+
+    override suspend fun changeUsername(oldUsername: String, password: String, newUsername: String): Boolean {
+        delay(800) // Simulate network delay
+
+        // Verify current credentials first
+        if (!userPreferencesManager.verifyCredentials(oldUsername, password)) {
+            return false // Authentication failed with old credentials
+        }
+
+        // Save the new username, keeping the same password
+        userPreferencesManager.saveLoginCredentials(newUsername, password)
+        return true
+    }
+
+    override suspend fun changePassword(username: String, oldPassword: String, newPassword: String): Boolean {
+        delay(800) // Simulate network delay
+
+        // Verify current credentials first
+        if (!userPreferencesManager.verifyCredentials(username, oldPassword)) {
+            return false // Authentication failed with old credentials
+        }
+
+        // Save the new password, keeping the same username
+        userPreferencesManager.saveLoginCredentials(username, newPassword)
+        return true
+    }
+
+    override fun getCurrentUsername(): String? {
+        return userPreferencesManager.getLoginUsername()
+    }
+
+    override fun getCurrentUserId(): String? {
+        // Untuk implementasi dummy, kita bisa mengembalikan ID dari user yang sedang aktif
+        return _user.id
     }
 }

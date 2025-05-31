@@ -30,6 +30,10 @@ import com.example.growpath.model.Achievement
 import com.example.growpath.navigation.NavGraph
 import java.text.SimpleDateFormat
 import java.util.*
+// Import untuk ActivityResult API
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +47,56 @@ fun ProfileScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showEditProfileDialog by remember { mutableStateOf(false) }
     var editedDisplayName by remember { mutableStateOf("") }
+
+    // Untuk handling foto profil
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val activity = context as? androidx.activity.ComponentActivity
+
+    // Variabel untuk menyimpan URI sementara
+    var pendingCropUri by remember { mutableStateOf<Uri?>(null) }
+    // Error state to handle exceptions
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Show error in snackbar if needed
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            errorMessage = null // Reset after showing
+        }
+    }
+
+    // Launcher untuk mendapatkan hasil cropping
+    val cropResultLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val resultUri = com.example.growpath.util.ImageCropHelper.handleCropResult(
+            result.resultCode,
+            result.data
+        )
+        resultUri?.let { uri ->
+            // Upload cropped image ke Firebase dan update profile
+            viewModel.uploadProfileImage(uri, context)
+        }
+    }
+
+    // Launcher untuk memilih gambar
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { imageUri: Uri? ->
+        imageUri?.let { uri ->
+            try {
+                // Mulai proses cropping dengan ukuran 500x500
+                if (activity != null) {
+                    val uCropIntent = com.example.growpath.util.ImageCropHelper.startCrop(activity, uri)
+                    cropResultLauncher.launch(uCropIntent)
+                }
+            } catch (e: Exception) {
+                // Tangkap error dan simpan pesan untuk ditampilkan
+                e.printStackTrace()
+                errorMessage = "Gagal membuka image cropper: ${e.message}"
+            }
+        }
+    }
 
     LaunchedEffect(state.user) {
         state.user?.displayName?.let { 
@@ -90,8 +144,14 @@ fun ProfileScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // Profile header with gradient background
-                    ProfileHeader(user = state.user)
-                    
+                    ProfileHeader(
+                        user = state.user,
+                        onProfilePhotoClick = {
+                            // Buka image picker ketika foto profil diklik
+                            imagePicker.launch("image/*")
+                        }
+                    )
+
                     Spacer(modifier = Modifier.height(24.dp))
                     
                     // Stats section
@@ -123,6 +183,78 @@ fun ProfileScreen(
                 Column {
                     val maxLength = 20
 
+                    // Profile photo in dialog
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Foto Profil
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .clickable { imagePicker.launch("image/*") },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Jika ada photoUrl, tampilkan dengan Coil
+                            if (state.user?.photoUrl != null) {
+                                androidx.compose.foundation.Image(
+                                    painter = coil.compose.rememberAsyncImagePainter(
+                                        model = state.user?.photoUrl
+                                    ),
+                                    contentDescription = "Profile Picture",
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .clip(CircleShape),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
+                            } else {
+                                // Default icon jika tidak ada foto
+                                Surface(
+                                    modifier = Modifier.size(80.dp),
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = "Profile Picture",
+                                        modifier = Modifier.padding(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+
+                            // Camera overlay icon
+                            Surface(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .size(24.dp),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CameraAlt,
+                                    contentDescription = "Change Photo",
+                                    modifier = Modifier.padding(4.dp),
+                                    tint = Color.White
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        Text(
+                            text = "Tap to change profile photo",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
                     OutlinedTextField(
                         value = editedDisplayName,
                         onValueChange = {
@@ -139,14 +271,6 @@ fun ProfileScreen(
                             )
                         },
                         isError = editedDisplayName.length > maxLength
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Text(
-                        text = "Email: ${state.user?.email ?: ""}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
@@ -172,7 +296,7 @@ fun ProfileScreen(
 }
 
 @Composable
-fun ProfileHeader(user: com.example.growpath.model.User?) {
+fun ProfileHeader(user: com.example.growpath.model.User?, onProfilePhotoClick: () -> Unit = {}) {
     val gradientBrush = Brush.linearGradient(
         colors = listOf(
             Color(0xFF66D2CC),
@@ -191,21 +315,80 @@ fun ProfileHeader(user: com.example.growpath.model.User?) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Profile picture
-            Surface(
+            // Profile picture with clickable modifier
+            Box(
                 modifier = Modifier
                     .size(120.dp)
-                    .clip(CircleShape),
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
+                    .clip(CircleShape)
+                    .clickable(onClick = onProfilePhotoClick),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "Profile Picture",
-                    modifier = Modifier
-                        .padding(24.dp)
-                        .size(72.dp),
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
+                // Jika ada photoUrl, tampilkan dengan Coil
+                if (user?.photoUrl != null) {
+                    androidx.compose.foundation.Image(
+                        painter = coil.compose.rememberAsyncImagePainter(
+                            model = user.photoUrl,
+                            error = coil.compose.rememberAsyncImagePainter(
+                                model = androidx.compose.ui.res.painterResource(
+                                    id = android.R.drawable.ic_menu_gallery
+                                )
+                            )
+                        ),
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(CircleShape),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+
+                    // Small camera icon for edit hint
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(32.dp)
+                            .clip(CircleShape),
+                        color = MaterialTheme.colorScheme.secondary
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = "Change Photo",
+                            tint = Color.White,
+                            modifier = Modifier.padding(6.dp)
+                        )
+                    }
+                } else {
+                    // Default profile icon if no photo
+                    Surface(
+                        modifier = Modifier.size(120.dp),
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
+                        shape = CircleShape
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier
+                                .padding(24.dp)
+                                .size(72.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+
+                        // Small camera icon for edit hint
+                        Surface(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(32.dp)
+                                .clip(CircleShape),
+                            color = MaterialTheme.colorScheme.secondary
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "Change Photo",
+                                tint = Color.White,
+                                modifier = Modifier.padding(6.dp)
+                            )
+                        }
+                    }
+                }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -218,11 +401,16 @@ fun ProfileHeader(user: com.example.growpath.model.User?) {
                 fontWeight = FontWeight.Bold
             )
             
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            // User email
+            // Username sebagai pengganti email
+            val authViewModel: AuthViewModel = hiltViewModel()
+            val currentUsername = remember { mutableStateOf("") }
+
+            LaunchedEffect(Unit) {
+                currentUsername.value = authViewModel.getCurrentUsername() ?: "User"
+            }
+
             Text(
-                text = user?.email ?: "-",
+                text = "@${currentUsername.value}",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
             )
@@ -520,6 +708,18 @@ fun SettingsSection(
             
             Spacer(modifier = Modifier.height(16.dp))
             
+            // Tambahkan tombol Account Settings
+            SettingsItem(
+                icon = Icons.Default.Security,
+                title = "Account Settings",
+                subtitle = "Change username and password",
+                onClick = {
+                    navController?.navigate(NavGraph.ACCOUNT_SETTINGS)
+                }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
             SettingsItem(
                 icon = Icons.Default.Info,
                 title = "About",

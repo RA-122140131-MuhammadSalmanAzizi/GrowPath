@@ -35,7 +35,13 @@ class ProfileViewModel @Inject constructor(private val userRepository: UserRepos
         // Subscribe to user flow for real-time updates
         viewModelScope.launch {
             userRepository.getUserFlow().collect { user ->
-                _state.update { it.copy(user = user) }
+                // Hitung ulang level berdasarkan XP untuk memastikan sinkronisasi dengan dashboard
+                val updatedUser = user?.let {
+                    val xpPerLevel = 1000 // XP yang dibutuhkan per level, sama dengan di DashboardScreen
+                    val calculatedLevel = (it.experience / xpPerLevel) + 1 // Level dimulai dari 1
+                    it.copy(level = calculatedLevel)
+                }
+                _state.update { it.copy(user = updatedUser) }
             }
         }
 
@@ -95,13 +101,62 @@ class ProfileViewModel @Inject constructor(private val userRepository: UserRepos
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
-                userRepository.updateUserPhoto(photoUrl)
-                // No need to update state manually as the Flow will handle it
+                // Update photo URL in user profile
+                userRepository.updateProfilePhoto(photoUrl)
                 _state.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
                 _state.update {
                     it.copy(
                         error = "Failed to update profile photo: ${e.message}",
+                        isLoading = false
+                    )
+                }
+            }
+        }
+    }
+
+    fun uploadProfileImage(imageUri: android.net.Uri, context: android.content.Context) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            try {
+                // Upload to Firebase Storage
+                val userId = userRepository.getCurrentUserId()
+                if (userId != null) {
+                    val storageRef = com.google.firebase.storage.FirebaseStorage.getInstance()
+                        .reference.child("profile_images/$userId.jpg")
+
+                    val uploadTask = storageRef.putFile(imageUri)
+                    uploadTask.continueWithTask { task ->
+                        if (!task.isSuccessful) {
+                            task.exception?.let { throw it }
+                        }
+                        storageRef.downloadUrl
+                    }.addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            val downloadUrl = task.result.toString()
+                            // Update profile with the new photo URL
+                            updateProfilePhoto(downloadUrl)
+                        } else {
+                            _state.update {
+                                it.copy(
+                                    error = "Failed to upload image: ${task.exception?.message}",
+                                    isLoading = false
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    _state.update {
+                        it.copy(
+                            error = "User not authenticated",
+                            isLoading = false
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _state.update {
+                    it.copy(
+                        error = "Failed to upload image: ${e.message}",
                         isLoading = false
                     )
                 }

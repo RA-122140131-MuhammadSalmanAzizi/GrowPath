@@ -12,6 +12,7 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven("https://maven.pkg.jetbrains.space/public/p/compose/dev") // buat plugin compose jika perlu
+        maven("https://jitpack.io") // Untuk UCrop library
     }
 }
 rootProject.name = "GrowPath"

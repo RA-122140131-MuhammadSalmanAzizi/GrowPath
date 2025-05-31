@@ -95,6 +95,14 @@ dependencies {
     // Coil
     implementation("io.coil-kt:coil-compose:2.5.0")
 
+    // Image Cropper
+    implementation("com.github.yalantis:ucrop:2.2.8")
+
+    // CameraX
+    implementation("androidx.camera:camera-camera2:1.3.1")
+    implementation("androidx.camera:camera-lifecycle:1.3.1")
+    implementation("androidx.camera:camera-view:1.3.1")
+
     // Accompanist
     implementation("com.google.accompanist:accompanist-swiperefresh:0.32.0")
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")

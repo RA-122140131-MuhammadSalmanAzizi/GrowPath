@@ -13,6 +13,7 @@ object NavGraph {
     const val NOTIFICATION_DETAIL = "notification_detail/{notificationId}"
     const val ABOUT = "about"
     const val POMODORO_TIMER = "pomodoro_timer"
+    const val ACCOUNT_SETTINGS = "account_settings"
 
     fun roadmapWithId(roadmapId: String): String = "roadmap/$roadmapId"
     fun milestoneWithId(milestoneId: String): String = "milestone/$milestoneId"

@@ -147,6 +147,13 @@ fun NavigationHost(
                         onBackClick = { navController.popBackStack() }
                     )
                 }
+
+                // Tambahkan rute untuk Account Settings
+                composable(NavGraph.ACCOUNT_SETTINGS) {
+                    AccountSettingsScreen(
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
             }
         }
     }

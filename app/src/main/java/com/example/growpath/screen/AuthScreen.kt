@@ -30,14 +30,19 @@ fun AuthScreen(
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
     var passwordVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    // Hardcoded credentials
-    val validUsername = "Amor"
-    val validPassword = "123"
+    // Observe ViewModel state
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+
+    // Pre-fill with current username if available
+    LaunchedEffect(Unit) {
+        viewModel.getCurrentUsername()?.let {
+            username = it
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -53,7 +58,6 @@ fun AuthScreen(
                         colors = listOf(
                             Color.White,
                             Color(0xFFBCEAE7)
-
                         )
                     )
                 )
@@ -77,7 +81,10 @@ fun AuthScreen(
                 // Username & Password Fields
                 OutlinedTextField(
                     value = username,
-                    onValueChange = { username = it },
+                    onValueChange = {
+                        username = it
+                        viewModel.clearError()
+                    },
                     label = { Text("Username") },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -86,7 +93,10 @@ fun AuthScreen(
 
                 OutlinedTextField(
                     value = password,
-                    onValueChange = { password = it },
+                    onValueChange = {
+                        password = it
+                        viewModel.clearError()
+                    },
                     label = { Text("Password") },
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
@@ -115,19 +125,11 @@ fun AuthScreen(
                 // Login Button
                 Button(
                     onClick = {
-                        isLoading = true
-                        // Check hardcoded credentials
-                        if (username == validUsername && password == validPassword) {
-                            // Login successful
-                            Log.d("ManualLogin", "Login successful with username: $username")
+                        viewModel.login(username, password) {
+                            // Login successful callback
+                            Log.d("AuthScreen", "Login successful with username: $username")
                             Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
-                            isLoading = false
                             onLoginSuccess()
-                        } else {
-                            // Login failed
-                            isLoading = false
-                            errorMessage = "Invalid username or password"
-                            Toast.makeText(context, "Invalid username or password", Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),

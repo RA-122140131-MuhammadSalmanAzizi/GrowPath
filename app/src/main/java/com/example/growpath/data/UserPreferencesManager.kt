@@ -51,6 +51,8 @@ class UserPreferencesManager @Inject constructor(
         const val LAST_OPENED_ROADMAP = "last_opened_roadmap"
         const val USER_LEVEL = "user_level"
         const val USER_XP = "user_experience"
+        const val LOGIN_USERNAME = "login_username"
+        const val LOGIN_PASSWORD = "login_password"
     }
 
     // Get user name as a Flow
@@ -167,5 +169,26 @@ class UserPreferencesManager @Inject constructor(
         _lastOpenedRoadmapFlow.value = null
         _userLevelFlow.value = 1
         _userXpFlow.value = 0
+    }
+
+    // Authentication methods
+    fun getLoginUsername(): String? =
+        sharedPreferences.getString(PreferenceKeys.LOGIN_USERNAME, "Amor")
+
+    fun getLoginPassword(): String? =
+        sharedPreferences.getString(PreferenceKeys.LOGIN_PASSWORD, "123")
+
+    fun saveLoginCredentials(username: String, password: String) {
+        sharedPreferences.edit()
+            .putString(PreferenceKeys.LOGIN_USERNAME, username)
+            .putString(PreferenceKeys.LOGIN_PASSWORD, password)
+            .apply()
+    }
+
+    // Method untuk verifikasi kredensial
+    fun verifyCredentials(username: String, password: String): Boolean {
+        val savedUsername = getLoginUsername()
+        val savedPassword = getLoginPassword()
+        return username == savedUsername && password == savedPassword
     }
 }
