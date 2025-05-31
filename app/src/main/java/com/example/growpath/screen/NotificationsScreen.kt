@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,13 +58,23 @@ fun NotificationsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
+                    // Mengubah warna header menjadi gradasi
+                    containerColor = Color.Transparent,
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White,
                     actionIconContentColor = Color.White
+                ),
+                modifier = Modifier.background(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xFF66D2CC),
+                            Color(0xFF6CB8B7)
+                        )
+                    )
                 )
             )
-        }
+        },
+        containerColor = Color.Transparent
     ) { paddingValues ->
         if (state.notifications.isEmpty()) {
             Box(
@@ -112,8 +123,8 @@ fun NotificationsScreen(
                             onClick = { viewModel.markAllAsRead() },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                containerColor = Color(0xFF66D2CC),
+                                contentColor = Color.White
                             )
                         ) {
                             Icon(
@@ -131,7 +142,15 @@ fun NotificationsScreen(
                     NotificationItem(
                         notification = notification,
                         dateFormat = dateFormat,
-                        onClick = { onNotificationClick(notification.id) } // Navigate to detail screen on click
+                        onClick = { onNotificationClick(notification.id) }
+                    )
+                    // Menambahkan pembatas antar notifikasi
+                    Divider(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        thickness = 0.5.dp,
+                        color = Color.LightGray.copy(alpha = 0.5f)
                     )
                 }
             }
@@ -150,10 +169,7 @@ fun NotificationItem(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (!notification.isRead)
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            else
-                MaterialTheme.colorScheme.surface
+            containerColor = if (notification.isRead) Color.LightGray.copy(alpha = 0.3f) else Color.White // Mengubah warna card menjadi abu-abu untuk notifikasi yang sudah dibaca
         ),
         onClick = onClick
     ) {

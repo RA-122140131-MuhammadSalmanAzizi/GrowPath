@@ -32,7 +32,7 @@ fun VideoTutorialsSection(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f)
+            containerColor = Color(0xFFC6E4C7) // Light lime-green background
         )
     ) {
         Column(
@@ -46,14 +46,14 @@ fun VideoTutorialsSection(
                 Icon(
                     Icons.Default.VideoLibrary,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.tertiary
+                    tint = Color(0xFF35786D) // Dark green
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.tertiary
+                    color = Color(0xFF33691E) // Dark green
                 )
             }
 

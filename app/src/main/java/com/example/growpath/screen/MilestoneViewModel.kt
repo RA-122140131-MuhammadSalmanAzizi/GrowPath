@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.growpath.model.Milestone
 import com.example.growpath.model.Note
 import com.example.growpath.repository.RoadmapRepository
+import com.example.growpath.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +24,10 @@ data class MilestoneState(
 )
 
 @HiltViewModel
-class MilestoneViewModel @Inject constructor(private val roadmapRepository: RoadmapRepository) : ViewModel() {
+class MilestoneViewModel @Inject constructor(
+    private val roadmapRepository: RoadmapRepository,
+    private val userRepository: UserRepository // Injeksi UserRepository
+) : ViewModel() {
     private val _state = MutableStateFlow(MilestoneState())
     val state: StateFlow<MilestoneState> = _state.asStateFlow()
 
@@ -87,6 +91,7 @@ class MilestoneViewModel @Inject constructor(private val roadmapRepository: Road
                 // If completing a milestone, show the animation
                 if (isCompleted) {
                     _state.update { it.copy(showCompletionAnimation = true) }
+                    userRepository.addExperiencePoints(125) // Menambahkan reward 125 XP
                 }
 
                 // Only need to call the repository method, the Flow will update automatically

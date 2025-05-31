@@ -79,11 +79,18 @@ fun DashboardScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Menggunakan Text dengan Brush untuk memberikan efek gradasi pada teks
                         Text(
-                            "GrowPath",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
+                            text = "GrowPath",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color(0xFF38B54C), // Cyan/teal
+                                        Color(0xFF71C6C3)  // Light cyan
+                                    )
+                                ),
+                                fontWeight = FontWeight.Bold
+                            )
                         )
                     }
                 },
@@ -114,7 +121,7 @@ fun DashboardScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.primary
+                    titleContentColor = Color(0xFF2196F3) // Change to your preferred color
                 )
             )
         },
@@ -128,13 +135,13 @@ fun DashboardScreen(
                 },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text("New Roadmap") },
-                containerColor = Color(0xFF2196F3), // Changed to blue color
+                containerColor = Color(0xFF58A9A8), // Changed to blue color
                 contentColor = Color.White
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
-        // Using Box with swipeRefresh modifier to implement pull-to-refresh functionality
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color.Transparent // Membuat container Scaffold menjadi transparan
+    ) { paddingValuesFromDashboardScaffold -> // These are for TopAppBar etc. of DashboardScreen
         SwipeRefresh(
             state = swipeRefreshState,
             onRefresh = {
@@ -149,15 +156,27 @@ fun DashboardScreen(
                 }
                 // Reload page data
                 viewModel.onRefresh()
-            }
+            },
+            modifier = Modifier
+                .padding(paddingValuesFromDashboardScaffold) // Apply Scaffold's padding here
+                .fillMaxSize() // SwipeRefresh fills the padded area
         ) {
             LazyColumn(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .background(MaterialTheme.colorScheme.background),
+                    .fillMaxSize() // LazyColumn fills SwipeRefresh
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White,
+                                // Pastikan warna ini sesuai dengan yang Anda inginkan untuk gradient
+                                Color(0xFFBCEAE7)
+                            ),
+                            startY = 0f,
+                            endY = Float.POSITIVE_INFINITY
+                        )
+                    ),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 88.dp) // Extra space for FAB
+                contentPadding = PaddingValues(bottom = 8.dp, top = 8.dp) // Adjusted bottom padding for content inside LazyColumn
             ) {
                 item {
                     UserProgressCard(
@@ -406,8 +425,9 @@ fun RoadmapCard(
                     )
                 } else {
                     LinearProgressIndicator(
-                        progress = { roadmap.progress },
-                        modifier = Modifier.weight(1f)
+                        progress = roadmap.progress,
+                        modifier = Modifier.weight(1f),
+                        trackColor = Color.Gray.copy(alpha = 0.2f) // Mengubah track menjadi abu-abu transparan
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -445,10 +465,17 @@ fun EmptyStateMessage(
 @Composable
 fun UserProgressCard(
     userName: String,
-    userLevel: Int,
+    userLevel: Int,  // Ini adalah level dari data state, mungkin tidak sesuai dengan XP
     userExperience: Int,
     onProfileClick: () -> Unit
 ) {
+    // Hitung level yang benar berdasarkan XP
+    val xpPerLevel = 1000 // XP yang dibutuhkan per level
+    val calculatedLevel = (userExperience / xpPerLevel) + 1 // Level dimulai dari 1
+    val currentLevelXp = userExperience % xpPerLevel
+    val xpToNextLevel = xpPerLevel - currentLevelXp
+    val progress = currentLevelXp.toFloat() / xpPerLevel.toFloat()
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -460,10 +487,10 @@ fun UserProgressCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    Brush.horizontalGradient(
+                    Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFF2196F3),
-                            Color(0xFF03A9F4)
+                            Color(0xFF66D2CC),
+                            Color(0xFF6CB8B7)
                         )
                     )
                 )
@@ -524,7 +551,7 @@ fun UserProgressCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Level $userLevel",
+                                text = "Level $calculatedLevel",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = Color.White
                             )
@@ -546,9 +573,8 @@ fun UserProgressCard(
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.White
                         )
-                        val nextLevelXp = userLevel * 1000
                         Text(
-                            text = "Next: $nextLevelXp XP",
+                            text = "To next level: $xpToNextLevel XP",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.8f)
                         )
@@ -557,9 +583,8 @@ fun UserProgressCard(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     // Progress bar for level
-                    val progress = (userExperience % 1000) / 1000f
                     LinearProgressIndicator(
-                        progress = { progress },
+                        progress = progress,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(8.dp)

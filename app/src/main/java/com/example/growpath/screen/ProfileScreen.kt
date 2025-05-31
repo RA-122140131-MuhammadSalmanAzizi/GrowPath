@@ -60,14 +60,6 @@ fun ProfileScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Profile") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
                 actions = {
                     IconButton(onClick = { showEditProfileDialog = true }) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit Profile")
@@ -75,7 +67,8 @@ fun ProfileScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color.Transparent // Membuat container Scaffold menjadi transparan
     ) { padding ->
         Box(
             modifier = Modifier
@@ -157,6 +150,7 @@ fun ProfileScreen(
                     )
                 }
             },
+            containerColor = Color.White, // Mengubah warna dialog menjadi putih
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -181,8 +175,8 @@ fun ProfileScreen(
 fun ProfileHeader(user: com.example.growpath.model.User?) {
     val gradientBrush = Brush.linearGradient(
         colors = listOf(
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.tertiary
+            Color(0xFF66D2CC),
+            Color(0xFF6CB8B7)
         )
     )
     
@@ -271,7 +265,8 @@ fun ProfileHeader(user: com.example.growpath.model.User?) {
 fun StatsSection(user: com.example.growpath.model.User?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White) // Mengubah menjadi warna putih
     ) {
         Column(
             modifier = Modifier
@@ -336,7 +331,8 @@ fun StatsSection(user: com.example.growpath.model.User?) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
+                        .clip(RoundedCornerShape(4.dp)),
+                    trackColor = Color.Gray.copy(alpha = 0.2f) // Mengubah track menjadi abu-abu transparan
                 )
             }
         }
@@ -382,7 +378,8 @@ fun RecentAchievements(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White) // Mengubah menjadi warna putih
     ) {
         Column(
             modifier = Modifier
@@ -442,7 +439,7 @@ fun AchievementItem(achievement: Achievement) {
         modifier = Modifier.width(160.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+            containerColor = Color.White // Mengubah warna menjadi putih
         )
     ) {
         Column(
@@ -501,7 +498,8 @@ fun SettingsSection(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(
             modifier = Modifier
@@ -516,18 +514,6 @@ fun SettingsSection(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            SettingsItem(
-                icon = Icons.Default.Notifications,
-                title = "Notifications",
-                subtitle = "Manage your notification preferences",
-                onClick = {
-                    // Navigate to notifications screen
-                    navController?.navigate(NavGraph.NOTIFICATIONS)
-                }
-            )
-            
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
             SettingsItem(
                 icon = Icons.Default.Info,
                 title = "About",
@@ -572,6 +558,7 @@ fun SettingsSection(
                     )
                 }
             },
+            containerColor = Color.White, // Mengubah warna dialog menjadi putih
             confirmButton = {
                 TextButton(onClick = { showAboutDialog = false }) {
                     Text("OK")

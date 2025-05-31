@@ -37,6 +37,16 @@ class RoadmapViewModel @Inject constructor(private val roadmapRepository: Roadma
             it.copy(isLoading = true, roadmapId = roadmapId, error = null)
         }
 
+        // Mark this roadmap as the last opened roadmap
+        viewModelScope.launch {
+            try {
+                roadmapRepository.markRoadmapAsLastOpened(roadmapId)
+            } catch (e: Exception) {
+                // Log the error but don't update UI state since this is a background operation
+                println("Failed to update last opened roadmap: ${e.message}")
+            }
+        }
+
         // Launch coroutine to get roadmap title
         viewModelScope.launch {
             try {

@@ -2,6 +2,7 @@ package com.example.growpath.screen
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -9,6 +10,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -45,6 +48,15 @@ fun AuthScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White,
+                            Color(0xFFBCEAE7)
+
+                        )
+                    )
+                )
         ) {
             Column(
                 modifier = Modifier

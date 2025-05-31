@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -22,6 +23,7 @@ fun NavigationHost(
 ) {
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0), // Remove default window insets
+        containerColor = Color.White, // Mengubah warna background Scaffold menjadi putih (FDFDFDFF) agar sesuai dengan navbar
         bottomBar = {
             // Hanya tampilkan bottom navigation bar jika bukan di halaman login
             val currentRoute = navController.currentBackStackEntry?.destination?.route
@@ -34,9 +36,8 @@ fun NavigationHost(
         Box(
             modifier = Modifier
                 .padding(
-                    bottom = innerPadding.calculateBottomPadding(),
-                    // Use smaller top padding to reduce top thickness
-                    top = 4.dp
+                    bottom = innerPadding.calculateBottomPadding()
+                    // Menghapus padding top yang sebelumnya 4.dp
                 )
         ) {
             NavHost(

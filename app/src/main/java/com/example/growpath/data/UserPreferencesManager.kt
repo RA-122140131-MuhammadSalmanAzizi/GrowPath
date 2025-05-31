@@ -26,6 +26,8 @@ class UserPreferencesManager @Inject constructor(
     private val _userThemeFlow = MutableStateFlow<String?>(null)
     private val _userLanguageFlow = MutableStateFlow<String?>(null)
     private val _lastOpenedRoadmapFlow = MutableStateFlow<String?>(null)
+    private val _userLevelFlow = MutableStateFlow<Int>(1)
+    private val _userXpFlow = MutableStateFlow<Int>(0)
 
     init {
         // Initialize flows with saved preferences
@@ -35,6 +37,8 @@ class UserPreferencesManager @Inject constructor(
         _userThemeFlow.value = getUserTheme()
         _userLanguageFlow.value = getUserLanguage()
         _lastOpenedRoadmapFlow.value = getLastOpenedRoadmapId()
+        _userLevelFlow.value = getUserLevel()
+        _userXpFlow.value = getUserXP()
     }
 
     // Keys for preferences
@@ -45,6 +49,8 @@ class UserPreferencesManager @Inject constructor(
         const val USER_THEME = "user_theme"
         const val USER_LANGUAGE = "user_language"
         const val LAST_OPENED_ROADMAP = "last_opened_roadmap"
+        const val USER_LEVEL = "user_level"
+        const val USER_XP = "user_experience"
     }
 
     // Get user name as a Flow
@@ -64,6 +70,10 @@ class UserPreferencesManager @Inject constructor(
 
     // Get last opened roadmap as a Flow
     val lastOpenedRoadmapFlow: Flow<String?> = _lastOpenedRoadmapFlow.asStateFlow()
+
+    // Get user level and XP as Flows
+    val userLevelFlow: Flow<Int> = _userLevelFlow.asStateFlow()
+    val userXpFlow: Flow<Int> = _userXpFlow.asStateFlow()
 
     // Get methods that directly access SharedPreferences
     private fun getUserName(): String? =
@@ -85,6 +95,13 @@ class UserPreferencesManager @Inject constructor(
     fun getLastOpenedRoadmapId(): String? {
         return sharedPreferences.getString(PreferenceKeys.LAST_OPENED_ROADMAP, null)
     }
+
+    // Get methods for user level and XP
+    fun getUserLevel(): Int =
+        sharedPreferences.getInt(PreferenceKeys.USER_LEVEL, 1)
+
+    fun getUserXP(): Int =
+        sharedPreferences.getInt(PreferenceKeys.USER_XP, 0)
 
     // Save user name
     suspend fun saveUserName(name: String) {
@@ -128,6 +145,17 @@ class UserPreferencesManager @Inject constructor(
         _lastOpenedRoadmapFlow.value = roadmapId
     }
 
+    // Save methods for user level and XP
+    fun saveUserLevel(level: Int) {
+        sharedPreferences.edit().putInt(PreferenceKeys.USER_LEVEL, level).apply()
+        _userLevelFlow.value = level
+    }
+
+    fun saveUserXP(xp: Int) {
+        sharedPreferences.edit().putInt(PreferenceKeys.USER_XP, xp).apply()
+        _userXpFlow.value = xp
+    }
+
     // Clear all preferences (for logout)
     suspend fun clearUserPreferences() {
         sharedPreferences.edit().clear().apply()
@@ -136,5 +164,8 @@ class UserPreferencesManager @Inject constructor(
         _userPhotoUrlFlow.value = null
         _userThemeFlow.value = null
         _userLanguageFlow.value = null
+        _lastOpenedRoadmapFlow.value = null
+        _userLevelFlow.value = 1
+        _userXpFlow.value = 0
     }
 }

@@ -12,9 +12,11 @@ import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -66,7 +68,9 @@ fun BottomNavigationBar(navController: NavController) {
     // Only show the bottom bar when NOT on login screen
     if (currentDestination?.route != NavGraph.LOGIN) {
         NavigationBar(
-            tonalElevation = 0.dp // Remove elevation shadow for a flatter look
+            tonalElevation = 0.dp, // Remove elevation shadow for a flatter look
+            containerColor = Color.White, // Latar belakang putih
+            contentColor = Color(0xFF58A9A8) // Warna konten cyan/teal sesuai tema aplikasi
         ) {
             bottomNavItems.forEach { item ->
                 val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
@@ -80,6 +84,13 @@ fun BottomNavigationBar(navController: NavController) {
                     },
                     label = { Text(item.title) },
                     selected = selected,
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color(0xFF58A9A8),
+                        selectedTextColor = Color(0xFF58A9A8),
+                        indicatorColor = Color.White.copy(alpha = 0.1f), // Warna indikator hampir transparan
+                        unselectedIconColor = Color.Gray.copy(alpha = 0.7f),
+                        unselectedTextColor = Color.Gray.copy(alpha = 0.7f)
+                    ),
                     onClick = {
                         // Always navigate to the main destinations regardless of current location
                         navController.navigate(item.route) {

@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import java.text.SimpleDateFormat
@@ -119,12 +120,12 @@ fun MilestoneScreen(
                         selectedNoteId = null
                         showNoteDialog = true
                     },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = Color(0xFF4CAF50) // Hijau utama
                 ) {
                     Icon(
                         Icons.Default.Edit,
                         contentDescription = "Add Note",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        tint = Color.White
                     )
                 }
             }
@@ -193,7 +194,7 @@ fun MilestoneScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = Color(0xFFE8F5E9) // Light green background
                         )
                     ) {
                         Column(
@@ -207,13 +208,14 @@ fun MilestoneScreen(
                                 Icon(
                                     Icons.Default.Info,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = Color(0xFF4CAF50) // Sesuaikan dengan warna hijau utama
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "Description",
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF2E7D32) // Dark green text
                                 )
                             }
 
@@ -233,54 +235,78 @@ fun MilestoneScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                            containerColor = Color(0xFFC8E6C9) // Light green background
                         )
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp)
                         ) {
+                            // Header stays fixed
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
                             ) {
                                 Icon(
                                     Icons.Default.Edit,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.secondary
+                                    tint = Color(0xFF388E3C) // Medium-dark green
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "Journal Notes",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.secondary
+                                    color = Color(0xFF2E7D32) // Dark green text
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Divider(color = Color(0xFF81C784).copy(alpha = 0.5f), thickness = 1.dp)
 
-                            if (notes.isEmpty()) {
-                                Text(
-                                    text = "No notes yet. Add your first note by clicking the + button.",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            } else {
-                                // Display notes
-                                notes.forEach { note ->
-                                    NoteCard(
-                                        note = note,
-                                        onEdit = {
-                                            currentNoteContent = note.content
-                                            selectedNoteId = note.id
-                                            showNoteDialog = true
-                                        },
-                                        onDelete = {
-                                            viewModel.deleteNote(note.id)
+                            // Content area with scrolling
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp) // Fixed height with scrolling
+                            ) {
+                                if (notes.isEmpty()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "No notes yet. Add your first note by clicking the pencil button.",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                } else {
+                                    // Scrollable notes content
+                                    LazyColumn(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(horizontal = 16.dp)
+                                            .padding(bottom = 16.dp)
+                                    ) {
+                                        items(notes) { note ->
+                                            NoteCard(
+                                                note = note,
+                                                onEdit = {
+                                                    currentNoteContent = note.content
+                                                    selectedNoteId = note.id
+                                                    showNoteDialog = true
+                                                },
+                                                onDelete = {
+                                                    viewModel.deleteNote(note.id)
+                                                }
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
                                         }
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                    }
                                 }
                             }
                         }
@@ -293,7 +319,7 @@ fun MilestoneScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+                            containerColor = Color(0xFFB2DFDB) // Light teal-green background
                         )
                     ) {
                         Column(
@@ -305,7 +331,7 @@ fun MilestoneScreen(
                                 text = "Resources & Tips",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.tertiary
+                                color = Color(0xFF00695C) // Dark teal-green
                             )
 
                             Spacer(modifier = Modifier.height(12.dp))
@@ -317,7 +343,7 @@ fun MilestoneScreen(
                                     Icon(
                                         Icons.Default.Info,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.tertiary
+                                        tint = Color(0xFF00897B) // Medium teal-green
                                     )
                                 }
                             )
@@ -328,7 +354,7 @@ fun MilestoneScreen(
                                     Icon(
                                         Icons.Default.DateRange,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.tertiary
+                                        tint = Color(0xFF00897B) // Medium teal-green
                                     )
                                 }
                             )
@@ -338,7 +364,7 @@ fun MilestoneScreen(
                             Text(
                                 "Complete this milestone step by step to gain a solid understanding of the concept.",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                                color = Color(0xFF004D40).copy(alpha = 0.8f) // Very dark teal-green
                             )
                         }
                     }
@@ -355,7 +381,7 @@ fun MilestoneScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+                            containerColor = Color(0xFFDCEDC8) // Very light green background
                         )
                     ) {
                         // ...existing code...
@@ -472,13 +498,13 @@ fun MilestoneStatusCard(
     val gradientBrush = Brush.linearGradient(
         colors = if (isCompleted) {
             listOf(
-                MaterialTheme.colorScheme.primary,
-                MaterialTheme.colorScheme.tertiary
+                Color(0xFF4CAF50),  // Hijau utama
+                Color(0xFF8BC34A)   // Hijau muda
             )
         } else {
             listOf(
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
+                Color(0xFF4CAF50).copy(alpha = 0.8f),  // Hijau utama (lebih transparan)
+                Color(0xFF81C784).copy(alpha = 0.8f)   // Hijau medium (lebih transparan)
             )
         }
     )

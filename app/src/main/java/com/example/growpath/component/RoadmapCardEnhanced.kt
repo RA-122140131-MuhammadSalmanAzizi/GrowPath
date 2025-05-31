@@ -203,7 +203,8 @@ fun RoadmapCardEnhanced(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(8.dp)
-                                .clip(RoundedCornerShape(4.dp))
+                                .clip(RoundedCornerShape(4.dp)),
+                            trackColor = Color.Gray.copy(alpha = 0.2f) // Mengubah track menjadi abu-abu transparan
                         )
 
                         Spacer(modifier = Modifier.width(8.dp))

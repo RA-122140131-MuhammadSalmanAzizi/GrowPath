@@ -58,18 +58,24 @@ class DummyUserRepositoryImpl @Inject constructor(
                 val savedName = userPreferencesManager.userNameFlow.first()
                 val savedEmail = userPreferencesManager.userEmailFlow.first()
                 val savedPhotoUrl = userPreferencesManager.userPhotoUrlFlow.first()
+                val savedLevel = userPreferencesManager.userLevelFlow.first()
+                val savedXp = userPreferencesManager.userXpFlow.first()
 
-                if (savedName != null || savedEmail != null || savedPhotoUrl != null) {
+                if (savedName != null || savedEmail != null || savedPhotoUrl != null || savedLevel > 1 || savedXp > 0) {
                     _user = _user.copy(
                         displayName = savedName ?: _user.displayName,
                         email = savedEmail ?: _user.email,
-                        photoUrl = savedPhotoUrl ?: _user.photoUrl
+                        photoUrl = savedPhotoUrl ?: _user.photoUrl,
+                        level = savedLevel,
+                        experience = savedXp
                     )
                 } else {
                     // Save initial values to preferences
                     userPreferencesManager.saveUserName(_user.displayName)
                     userPreferencesManager.saveUserEmail(_user.email)
                     _user.photoUrl?.let { userPreferencesManager.saveUserPhotoUrl(it) }
+                    userPreferencesManager.saveUserLevel(_user.level)
+                    userPreferencesManager.saveUserXP(_user.experience)
                 }
             } catch (e: Exception) {
                 // Handle initialization error
@@ -169,6 +175,9 @@ class DummyUserRepositoryImpl @Inject constructor(
         val newExperience = _user.experience + xp
         _user = _user.copy(experience = newExperience)
 
+        // Simpan XP terbaru ke SharedPreferences
+        userPreferencesManager.saveUserXP(newExperience)
+
         // Cek apakah perlu naik level
         return checkAndProcessLevelUp()
     }
@@ -181,6 +190,8 @@ class DummyUserRepositoryImpl @Inject constructor(
         // Jika level seharusnya lebih tinggi, maka naikkan level pengguna
         if (totalLevelsEarned > _user.level) {
             _user = _user.copy(level = totalLevelsEarned)
+            // Simpan level terbaru ke SharedPreferences
+            userPreferencesManager.saveUserLevel(totalLevelsEarned)
             // Di aplikasi nyata, kita mungkin ingin menampilkan animasi/notifikasi kenaikan level di sini
         }
 

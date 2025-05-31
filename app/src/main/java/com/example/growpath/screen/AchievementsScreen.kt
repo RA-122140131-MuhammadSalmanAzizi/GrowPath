@@ -42,7 +42,8 @@ fun AchievementsScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
-        }
+        },
+        containerColor = Color.Transparent // Membuat container Scaffold menjadi transparan
     ) { padding ->
         Column(
             modifier = Modifier
@@ -81,8 +82,8 @@ fun AchievementStatsCard(achievements: List<Achievement>) {
 
     val gradientBrush = Brush.linearGradient(
         colors = listOf(
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.tertiary
+            Color(0xFF66D2CC),
+            Color(0xFF6CB8B7)
         )
     )
 
@@ -137,7 +138,7 @@ fun AchievementStatsCard(achievements: List<Achievement>) {
                         .height(8.dp)
                         .clip(RoundedCornerShape(4.dp)),
                     color = MaterialTheme.colorScheme.onPrimary,
-                    trackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
+                    trackColor = Color.Gray.copy(alpha = 0.2f) // Mengubah track menjadi abu-abu transparan
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -163,9 +164,9 @@ fun AchievementCard(achievement: Achievement) {
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (achievement.isUnlocked) {
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                Color.White  // Mengubah warna menjadi putih untuk yang unlocked
             } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                Color.LightGray.copy(alpha = 0.5f)  // Mengubah warna menjadi abu-abu untuk yang locked
             }
         )
     ) {

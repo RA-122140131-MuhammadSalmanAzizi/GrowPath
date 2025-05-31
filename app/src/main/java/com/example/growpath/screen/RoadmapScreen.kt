@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.growpath.model.Milestone
-import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,7 +54,7 @@ fun RoadmapScreen(
                 title = { Text(state.roadmapTitle ?: "Learning Path") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -182,8 +181,8 @@ fun RoadmapProgressHeader(
                         .fillMaxWidth()
                         .height(12.dp)
                         .clip(CircleShape),
-                    color = Color.LightGray,
-                    trackColor = Color.LightGray
+                    color = Color.Gray.copy(alpha = 0.2f), // Mengubah background track menjadi abu-abu transparan
+                    trackColor = Color.Gray.copy(alpha = 0.2f)
                 )
 
                 // Progress indicator
@@ -193,7 +192,8 @@ fun RoadmapProgressHeader(
                         .fillMaxWidth()
                         .height(12.dp)
                         .clip(CircleShape),
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = Color.Gray.copy(alpha = 0.2f) // Mengubah track menjadi abu-abu transparan
                 )
 
                 Text(
@@ -222,8 +222,8 @@ fun DuolingoStylePath(
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 16.dp), // Kurangi padding horizontal untuk node yang lebih besar
-            verticalArrangement = Arrangement.spacedBy((-60).dp),  // Perbesar overlap untuk node yang lebih besar
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy((-60).dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             itemsIndexed(milestones) { index, milestone ->
@@ -237,82 +237,53 @@ fun DuolingoStylePath(
                 ) {
                     // Draw connecting line to previous node - PUT FIRST to ensure it's at the back layer
                     if (index > 0) {
-                        val previousCompleted = index > 0 && milestones[index-1].isCompleted
-                        val lineColor = if (previousCompleted && milestone.isCompleted)
-                            MaterialTheme.colorScheme.primary else Color.LightGray
+                        val previousCompleted = milestones[index-1].isCompleted
+                        val currentMilestoneCompleted = milestone.isCompleted
+                        val primaryColor = MaterialTheme.colorScheme.primary
+                        val lightGrayColor = Color.LightGray
+
+                        val lineColor = if (previousCompleted && currentMilestoneCompleted)
+                            primaryColor else lightGrayColor
 
                         val previousIsEven = (index - 1) % 2 == 0
                         Canvas(modifier = Modifier
                             .fillMaxWidth()
-                            .height(100.dp) // Tinggi canvas lebih besar untuk jalur lengkung yang lebih dramatis
-                            .padding(vertical = 4.dp) // Make sure there's room for the path
+                            .height(100.dp)
+                            .padding(vertical = 4.dp)
                         ) {
                             val startX = if (previousIsEven) size.width * 0.2f else size.width * 0.8f
                             val endX = if (isEvenIndex) size.width * 0.2f else size.width * 0.8f
-                            val startY = 0f
-                            val endY = size.height
+                            val startY = 0f // Top of this Canvas
+                            val endY = size.height // Bottom of this Canvas
+
+                            val lPath = Path().apply {
+                                moveTo(startX, startY)
+                                lineTo(endX, startY)   // Horizontal segment
+                                lineTo(endX, endY)     // Vertical segment
+                            }
 
                             // Add highlight effect to line (shadow/glow)
-                            if (previousCompleted && milestone.isCompleted) {
+                            if (previousCompleted && currentMilestoneCompleted) {
                                 // Draw background glow for completed path
-                                val glowPath = Path().apply {
-                                    moveTo(startX, startY)
-                                    cubicTo(
-                                        startX, startY + size.height * 0.3f,
-                                        endX, endY - size.height * 0.3f,
-                                        endX, endY
-                                    )
-                                }
-
                                 drawPath(
-                                    path = glowPath,
-                                    color = lineColor.copy(alpha = 0.3f),
+                                    path = lPath,
+                                    color = primaryColor.copy(alpha = 0.3f),
                                     style = Stroke(
-                                        width = 22f, // Wider for glow effect
-                                        cap = StrokeCap.Round,
-                                        join = StrokeJoin.Round
+                                        width = 6.dp.toPx(), // Wider for glow
+                                        cap = StrokeCap.Round // Optional: for softer edges
                                     )
                                 )
                             }
 
-                            // Draw main path
-                            val mainPath = Path().apply {
-                                moveTo(startX, startY)
-                                cubicTo(
-                                    startX, startY + size.height * 0.3f,
-                                    endX, endY - size.height * 0.3f,
-                                    endX, endY
-                                )
-                            }
-
-                            // Draw the much thicker path
+                            // Draw actual L-shaped path on top
                             drawPath(
-                                path = mainPath,
+                                path = lPath,
                                 color = lineColor,
                                 style = Stroke(
-                                    width = 16f, // Double the thickness from previous 8f
-                                    cap = StrokeCap.Round,
-                                    join = StrokeJoin.Round
+                                    width = 3.dp.toPx(),
+                                    pathEffect = if (previousCompleted && currentMilestoneCompleted) null else PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
                                 )
                             )
-
-                            // For completed paths, add decorative dots at intervals
-                            if (previousCompleted && milestone.isCompleted) {
-                                val pathMeasure = android.graphics.PathMeasure(mainPath.asAndroidPath(), false)
-                                val pathLength = pathMeasure.length
-                                val pos = FloatArray(2)
-                                val tan = FloatArray(2)
-
-                                // Add dots along the path
-                                for (i in 0 until (pathLength / 50).toInt()) {
-                                    pathMeasure.getPosTan(i * 50f, pos, tan)
-                                    drawCircle(
-                                        color = Color.White,
-                                        radius = 4f,
-                                        center = Offset(pos[0], pos[1])
-                                    )
-                                }
-                            }
                         }
                     }
 
@@ -322,7 +293,7 @@ fun DuolingoStylePath(
                         onClick = { onMilestoneClick(milestone.id) },
                         modifier = Modifier
                             .align(alignment)
-                            .padding(top = if (index > 0) 80.dp else 0.dp) // Padding atas yang lebih besar
+                            .padding(top = if (index > 0) 80.dp else 0.dp)
                     )
                 }
             }
@@ -389,6 +360,9 @@ fun LearningPathNode(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = modifier.width(nodeSize + 48.dp) // Wider column for larger node
         ) {
+            // Capture MaterialTheme colors outside of drawBehind
+            val primaryColor = MaterialTheme.colorScheme.primary
+
             Box(
                 modifier = Modifier
                     .size(nodeSize)
@@ -397,7 +371,7 @@ fun LearningPathNode(
                         if (milestone.isCompleted) {
                             Modifier.drawBehind {
                                 drawCircle(
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                    color = primaryColor.copy(alpha = 0.2f),
                                     radius = size.width * 0.52f
                                 )
                             }
@@ -410,8 +384,8 @@ fun LearningPathNode(
                     .border(
                         width = 5.dp, // Border lebih tebal
                         color = if (milestone.isCompleted)
-                               MaterialTheme.colorScheme.primary.copy(alpha = borderGlow)
-                               else MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                               primaryColor.copy(alpha = borderGlow)
+                               else primaryColor.copy(alpha = 0.7f),
                         shape = CircleShape
                     )
                     .clip(CircleShape)
@@ -428,51 +402,47 @@ fun LearningPathNode(
                     verticalArrangement = Arrangement.Center,
                     modifier = Modifier.padding(16.dp) // Padding dalam yang lebih besar
                 ) {
-                    // Icon yang lebih besar
-                    Icon(
-                        imageVector = when {
-                            milestone.title.contains("intro", ignoreCase = true) -> Icons.Default.School
-                            milestone.title.contains("final", ignoreCase = true) -> Icons.Default.EmojiEvents
-                            milestone.title.contains("test", ignoreCase = true) -> Icons.Default.Quiz
-                            milestone.title.contains("practice", ignoreCase = true) -> Icons.Default.Build
-                            else -> Icons.Default.CheckCircle
-                        },
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(48.dp) // Ukuran ikon lebih besar (dari 36.dp)
-                    )
+                    // Icon yang lebih besar - only show for completed nodes or nodes with specific titles
+                    if (milestone.isCompleted ||
+                        milestone.title.contains("intro", ignoreCase = true) ||
+                        milestone.title.contains("final", ignoreCase = true) ||
+                        milestone.title.contains("test", ignoreCase = true) ||
+                        milestone.title.contains("practice", ignoreCase = true)) {
 
-                    Spacer(modifier = Modifier.height(12.dp)) // Jarak yang lebih besar
+                        Icon(
+                            imageVector = when {
+                                milestone.title.contains("intro", ignoreCase = true) -> Icons.Default.School
+                                milestone.title.contains("final", ignoreCase = true) -> Icons.Default.EmojiEvents
+                                milestone.title.contains("test", ignoreCase = true) -> Icons.Default.Quiz
+                                milestone.title.contains("practice", ignoreCase = true) -> Icons.Default.Build
+                                else -> Icons.Default.CheckCircle // Only for completed nodes
+                            },
+                            contentDescription = null,
+                            tint = iconTint,
+                            modifier = Modifier.size(48.dp) // Ukuran ikon lebih besar
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp)) // Jarak yang lebih besar
+                    }
 
                     Text(
                         text = milestone.title,
-                        style = MaterialTheme.typography.titleMedium, // Larger text style
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = textColor,
                         textAlign = TextAlign.Center,
-                        maxLines = 3, // Allow more lines for better readability with larger text
+                        maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
-                        fontSize = 16.sp // Font lebih besar (dari 14.sp)
+                        fontSize = 16.sp
                     )
 
-                    if (milestone.description.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = milestone.description,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (milestone.isCompleted) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                            textAlign = TextAlign.Center,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            fontSize = 10.sp
-                        )
-                    }
+                    // Description removed as requested
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Status indicator with pill shape and animated border for completed items
+            // Status indicator with pill shape and non-transparent text
             Surface(
                 color = if (milestone.isCompleted)
                     MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
@@ -498,11 +468,11 @@ fun LearningPathNode(
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
                     color = if (milestone.isCompleted)
-                        MaterialTheme.colorScheme.primary
+                        MaterialTheme.colorScheme.primary // Non-transparent text
                     else
-                        Color.Gray,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), // Padding lebih besar
-                    fontSize = 12.sp // Font status lebih besar
+                        Color.Gray, // Non-transparent text
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    fontSize = 12.sp
                 )
             }
         }
