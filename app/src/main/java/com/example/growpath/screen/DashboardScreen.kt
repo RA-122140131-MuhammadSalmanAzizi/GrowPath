@@ -195,8 +195,8 @@ fun DashboardScreen(
                 // Statistics Section
                 item {
                     HomeStatisticsWidget(
-                        completedToday = 2,
-                        streak = 5,
+                        completedToday = state.completedToday,
+                        streak = state.currentStreak,
                         totalXp = state.userExperience,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )

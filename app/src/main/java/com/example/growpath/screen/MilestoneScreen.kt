@@ -560,12 +560,22 @@ fun MilestoneStatusCard(
 
                     Switch(
                         checked = isCompleted,
-                        onCheckedChange = onStatusChange,
+                        onCheckedChange = { newValue ->
+                            // Only allow changing from incomplete to complete, not the reverse
+                            if (newValue && !isCompleted) {
+                                onStatusChange(true)
+                            }
+                            // Ignore attempts to uncheck the switch (prevents toggling back to incomplete)
+                        },
+                        enabled = !isCompleted, // Disable the switch once completed
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                             checkedTrackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f),
                             uncheckedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                            uncheckedTrackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f)
+                            uncheckedTrackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f),
+                            // Add darker colors for disabled state
+                            disabledCheckedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                            disabledCheckedTrackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f)
                         )
                     )
                 }
@@ -574,7 +584,7 @@ fun MilestoneStatusCard(
 
                 Text(
                     text = if (isCompleted)
-                        "Well done! You've completed this milestone."
+                        "Well done! You've completed this milestone. Completion cannot be undone."
                     else
                         "Toggle the switch when you've completed this milestone.",
                     style = MaterialTheme.typography.bodyMedium,

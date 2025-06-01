@@ -39,7 +39,9 @@ data class DashboardState(
     val favoriteRoadmaps: List<Roadmap> = emptyList(),
     val lastOpenedRoadmap: Roadmap? = null,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val completedToday: Int = 0,   // Number of milestones completed today
+    val currentStreak: Int = 0     // Current daily streak of learning
 )
 
 @HiltViewModel
@@ -60,16 +62,33 @@ class DashboardViewModel @Inject constructor(
     private val _events = MutableSharedFlow<DashboardEvent>()
     val events = _events.asSharedFlow()
 
+    // Constants for statistics tracking
+    companion object {
+        private const val KEY_LAST_ACTIVE_DATE = "last_active_date"
+        private const val KEY_CURRENT_STREAK = "current_streak"
+        private const val KEY_TODAY_COMPLETIONS = "today_completions"
+        private const val KEY_COMPLETED_MILESTONES = "completed_milestones"
+        private const val KEY_LAST_COMPLETED_DATE = "last_completed_date" // Track when user last completed a milestone
+        private const val KEY_COMPLETED_TODAY = "completed_milestone_today" // Track if user completed milestone today
+    }
+
     init {
         loadFavorites()
+        loadStatistics() // Load saved statistics
+        updateDailyStreak() // Update streak when app opens
         observeUser()
         observeRoadmaps()
         observeLastOpenedRoadmap()
+        observeMilestoneCompletions() // Track milestone completions
     }
 
     // Load favorites from SharedPreferences
     private fun loadFavorites() {
-        val favoritesJson = sharedPreferences.getString("favorite_roadmaps", null)
+        // Get current username to create a user-specific key
+        val username = userRepository.getCurrentUsername() ?: return
+        val userSpecificKey = "${username}_favorite_roadmaps"
+
+        val favoritesJson = sharedPreferences.getString(userSpecificKey, null)
         if (favoritesJson != null) {
             val type = object : TypeToken<List<Roadmap>>() {}.type
             try {
@@ -77,15 +96,19 @@ class DashboardViewModel @Inject constructor(
                 _state.update { it.copy(favoriteRoadmaps = favorites) }
             } catch (e: Exception) {
                 // Handle potential parsing errors
-                sharedPreferences.edit().remove("favorite_roadmaps").apply()
+                sharedPreferences.edit().remove(userSpecificKey).apply()
             }
         }
     }
 
     // Save favorites to SharedPreferences
     private fun saveFavorites(favorites: List<Roadmap>) {
+        // Get current username to create a user-specific key
+        val username = userRepository.getCurrentUsername() ?: return
+        val userSpecificKey = "${username}_favorite_roadmaps"
+
         val favoritesJson = gson.toJson(favorites)
-        sharedPreferences.edit().putString("favorite_roadmaps", favoritesJson).apply()
+        sharedPreferences.edit().putString(userSpecificKey, favoritesJson).apply()
     }
 
     private fun observeUser() {
@@ -231,6 +254,227 @@ class DashboardViewModel @Inject constructor(
             removeFromFavorites(roadmap.id)
         } else {
             addToFavorites(roadmap)
+        }
+    }
+
+    // === Statistics tracking functionality ===
+
+    // Track milestone completions to update statistics
+    private fun observeMilestoneCompletions() {
+        viewModelScope.launch {
+            try {
+                // Get username for user-specific data
+                val username = userRepository.getCurrentUsername() ?: return@launch
+                val userSpecificKey = "${username}_$KEY_COMPLETED_MILESTONES"
+
+                // Load already completed milestone IDs
+                val completedMilestoneIdsSet = sharedPreferences.getStringSet(userSpecificKey, setOf()) ?: setOf()
+                val trackedCompletedMilestones = completedMilestoneIdsSet.toMutableSet()
+
+                // We'll track all roadmaps and their milestones
+                val allRoadmaps = roadmapRepository.getRoadmaps()
+                allRoadmaps.collect { roadmaps ->
+                    roadmaps.forEach { roadmap ->
+                        viewModelScope.launch {
+                            roadmapRepository.getMilestonesForRoadmap(roadmap.id).collect { milestones ->
+                                var milestonesCompletedNow = 0
+
+                                // Find newly completed milestones
+                                milestones.forEach { milestone ->
+                                    if (milestone.isCompleted && !trackedCompletedMilestones.contains(milestone.id)) {
+                                        // This is a newly completed milestone
+                                        trackedCompletedMilestones.add(milestone.id)
+                                        milestonesCompletedNow++
+
+                                        // When a milestone is completed, mark today as having a completion
+                                        markMilestoneCompletedToday()
+
+                                        // Update achievement progress
+                                        updateAchievementProgress()
+                                    }
+                                }
+
+                                if (milestonesCompletedNow > 0) {
+                                    // Save the updated set of tracked milestones
+                                    sharedPreferences.edit()
+                                        .putStringSet(userSpecificKey, trackedCompletedMilestones)
+                                        .apply()
+
+                                    // Update today's completion count (add the newly completed ones)
+                                    val newTodayTotal = _state.value.completedToday + milestonesCompletedNow
+                                    saveCompletedToday(newTodayTotal)
+
+                                    // Update UI state
+                                    _state.update { it.copy(completedToday = newTodayTotal) }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Handle errors
+                _state.update { it.copy(error = "Failed to track completions: ${e.message}") }
+            }
+        }
+    }
+
+    // Mark that a milestone was completed today (for streak tracking)
+    private fun markMilestoneCompletedToday() {
+        val username = userRepository.getCurrentUsername() ?: return
+
+        // Get current date as string (format: YYYY-MM-DD)
+        val today = java.time.LocalDate.now().toString()
+
+        // Create user-specific keys
+        val lastCompletedDateKey = "${username}_$KEY_LAST_COMPLETED_DATE"
+        val completedTodayKey = "${username}_$KEY_COMPLETED_TODAY"
+        val streakKey = "${username}_$KEY_CURRENT_STREAK"
+
+        // Check if this is the first milestone completed today
+        val alreadyCompletedToday = sharedPreferences.getBoolean(completedTodayKey, false)
+
+        // If this is the first milestone today, increment streak
+        if (!alreadyCompletedToday) {
+            // Get current streak
+            val currentStreak = sharedPreferences.getInt(streakKey, 0)
+
+            // Calculate new streak value
+            val newStreak = currentStreak + 1
+
+            // Save updated streak
+            sharedPreferences.edit().putInt(streakKey, newStreak).apply()
+
+            // Update UI
+            _state.update { it.copy(currentStreak = newStreak) }
+        }
+
+        // Save that user completed a milestone today
+        sharedPreferences.edit()
+            .putString(lastCompletedDateKey, today)
+            .putBoolean(completedTodayKey, true)
+            .apply()
+    }
+
+    // Update the daily data when the app is opened (different day check)
+    private fun updateDailyStreak() {
+        val username = userRepository.getCurrentUsername() ?: return
+
+        // Create user-specific keys
+        val lastActiveKey = "${username}_$KEY_LAST_ACTIVE_DATE"
+        val lastCompletedDateKey = "${username}_$KEY_LAST_COMPLETED_DATE"
+        val streakKey = "${username}_$KEY_CURRENT_STREAK"
+        val todayCompletionsKey = "${username}_$KEY_TODAY_COMPLETIONS"
+        val completedTodayKey = "${username}_$KEY_COMPLETED_TODAY"
+
+        // Get current date
+        val today = java.time.LocalDate.now()
+        val todayString = today.toString()
+
+        // Get last active date
+        val lastActiveDate = sharedPreferences.getString(lastActiveKey, null)
+
+        // Check if we've already checked today
+        if (lastActiveDate == todayString) {
+            // Already updated today, nothing more to do
+            return
+        }
+
+        // Get last completed date
+        val lastCompletedDateString = sharedPreferences.getString(lastCompletedDateKey, null)
+
+        if (lastCompletedDateString != null) {
+            val lastCompletedDate = java.time.LocalDate.parse(lastCompletedDateString)
+            val yesterday = today.minusDays(1)
+
+            // Check if user missed a full day (no milestone completions)
+            if (lastCompletedDate.isBefore(yesterday)) {
+                // Reset streak to 0 since user missed at least one full day
+                sharedPreferences.edit().putInt(streakKey, 0).apply()
+                _state.update { it.copy(currentStreak = 0) }
+            }
+        }
+
+        // It's a new day! Reset the "completed today" counter and flag for the new day
+        sharedPreferences.edit()
+            .putString(lastActiveKey, todayString)
+            .putInt(todayCompletionsKey, 0)
+            .putBoolean(completedTodayKey, false)
+            .apply()
+
+        // Update UI state with zeroed completions for the new day
+        _state.update { it.copy(completedToday = 0) }
+    }
+
+    // Load previously saved statistics
+    private fun loadStatistics() {
+        val username = userRepository.getCurrentUsername() ?: return
+
+        // Create user-specific keys
+        val streakKey = "${username}_$KEY_CURRENT_STREAK"
+        val todayCompletionsKey = "${username}_$KEY_TODAY_COMPLETIONS"
+
+        // Get saved values with defaults
+        val streak = sharedPreferences.getInt(streakKey, 0)
+        val completedToday = sharedPreferences.getInt(todayCompletionsKey, 0)
+
+        // Update state with loaded values
+        _state.update { it.copy(
+            currentStreak = streak,
+            completedToday = completedToday
+        )}
+    }
+
+    // Save the count of milestones completed today
+    private fun saveCompletedToday(count: Int) {
+        val username = userRepository.getCurrentUsername() ?: return
+        val todayCompletionsKey = "${username}_$KEY_TODAY_COMPLETIONS"
+        sharedPreferences.edit().putInt(todayCompletionsKey, count).apply()
+    }
+
+    // Update achievement progress for Knowledge Explorer and Learning Journey
+    private fun updateAchievementProgress() {
+        val username = userRepository.getCurrentUsername() ?: return
+
+        try {
+            // Get achievement repository from user repository
+            val achievementRepository = userRepository.getAchievementRepository()
+            achievementRepository?.let { repo ->
+                viewModelScope.launch {
+                    // Knowledge Explorer: Track distinct roadmaps with progress
+                    val roadmapsWithProgress = mutableSetOf<String>()
+
+                    roadmapRepository.getRoadmaps().collect { allRoadmaps ->
+                        // First identify all roadmaps with progress
+                        for (roadmap in allRoadmaps) {
+                            // Check if this roadmap has any progress
+                            if (roadmap.progress > 0) {
+                                roadmapsWithProgress.add(roadmap.id)
+                            }
+                        }
+
+                        // Knowledge Explorer: Check if exactly 3 different roadmaps are started (not less)
+                        // Only record achievement when the count equals or exceeds 3
+                        if (roadmapsWithProgress.size >= 3) {
+                            // Record all roadmaps that have been started (for Knowledge Explorer)
+                            for (roadmapId in roadmapsWithProgress) {
+                                repo.recordRoadmapStarted(roadmapId)
+                            }
+                        }
+
+                        // Learning Journey: Based on completing 2 roadmaps fully
+                        for (roadmap in allRoadmaps) {
+                            // Check for completed roadmaps
+                            if (roadmap.progress >= 1.0f) {
+                                // Record that this roadmap was completed
+                                repo.recordRoadmapCompletion(roadmap.id)
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Handle errors
+            _state.update { it.copy(error = "Failed to update achievements: ${e.message}") }
         }
     }
 }

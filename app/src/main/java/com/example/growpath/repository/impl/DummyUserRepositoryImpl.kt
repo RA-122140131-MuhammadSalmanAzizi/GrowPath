@@ -4,6 +4,7 @@ import com.example.growpath.data.UserPreferencesManager
 import com.example.growpath.model.Achievement
 import com.example.growpath.model.User
 import com.example.growpath.repository.UserRepository
+import com.example.growpath.repository.AchievementRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -18,7 +19,8 @@ import javax.inject.Singleton
 
 @Singleton
 class DummyUserRepositoryImpl @Inject constructor(
-    private val userPreferencesManager: UserPreferencesManager
+    private val userPreferencesManager: UserPreferencesManager,
+    private val achievementRepository: AchievementRepository // Add AchievementRepository
 ) : UserRepository {
 
     // Constants
@@ -83,47 +85,6 @@ class DummyUserRepositoryImpl @Inject constructor(
         }
     }
 
-    private val achievements = listOf(
-        Achievement(
-            id = "ach_1",
-            title = "First Steps",
-            description = "Complete your first milestone",
-            iconUrl = "",
-            isUnlocked = true,
-            unlockedAt = System.currentTimeMillis() - 86400000 * 5
-        ),
-        Achievement(
-            id = "ach_2",
-            title = "Quick Learner",
-            description = "Complete 5 milestones in a single day",
-            iconUrl = "",
-            isUnlocked = true,
-            unlockedAt = System.currentTimeMillis() - 86400000 * 2
-        ),
-        Achievement(
-            id = "ach_3",
-            title = "Mastery",
-            description = "Complete a full roadmap",
-            iconUrl = "",
-            isUnlocked = true,
-            unlockedAt = System.currentTimeMillis() - 86400000
-        ),
-        Achievement(
-            id = "ach_4",
-            title = "Dedicated Student",
-            description = "Access the app for 7 consecutive days",
-            iconUrl = "",
-            isUnlocked = false
-        ),
-        Achievement(
-            id = "ach_5",
-            title = "Knowledge Explorer",
-            description = "Start 3 different roadmaps",
-            iconUrl = "",
-            isUnlocked = false
-        )
-    )
-
     override fun getUserFlow(): Flow<User?> {
         return _userFlow.asStateFlow()
     }
@@ -134,7 +95,8 @@ class DummyUserRepositoryImpl @Inject constructor(
 
     override suspend fun getUserAchievements(): List<Achievement> {
         delay(500) // Simulate network delay
-        return achievements
+        // Use the achievement repository to fetch achievements instead of hardcoded ones
+        return achievementRepository.getAllAchievements()
     }
 
     override suspend fun updateUserProfile(displayName: String): User {
@@ -243,17 +205,31 @@ class DummyUserRepositoryImpl @Inject constructor(
             // Set active user (auto-login)
             userPreferencesManager.setActiveUser(username)
 
+            // Reset all data for this new user to ensure they start from zero
             // Create initial user data for the new user
             userPreferencesManager.saveUserName(username) // Default display name is username
-            userPreferencesManager.saveUserEmail("$username@example.com") // Default email
             userPreferencesManager.saveUserLevel(1) // Start at level 1
             userPreferencesManager.saveUserXP(0) // Start with 0 XP
+            userPreferencesManager.saveUserPhotoUrl(null) // No photo
 
-            // Update the user model
+            // Reset any roadmap progress - using empty string instead of null
+            // since saveLastOpenedRoadmapId doesn't accept null values
+            userPreferencesManager.saveLastOpenedRoadmapId("") // No last opened roadmap
+
+            // Reset achievements - save empty string for achievements keys
+            resetUserAchievements(username)
+
+            // Reset milestones progress - save empty set of completed milestones
+            resetUserMilestones(username)
+
+            // Reset roadmap progress
+            resetUserRoadmapProgress(username)
+
+            // Update the user model with fresh data
             _user = User(
                 id = username,
                 displayName = username,
-                email = "$username@example.com",
+                email = "",  // No email since you mentioned it's not needed
                 photoUrl = null,
                 level = 1,
                 experience = 0
@@ -261,6 +237,24 @@ class DummyUserRepositoryImpl @Inject constructor(
         }
 
         return success
+    }
+
+    // Helper method to reset user's achievements
+    private suspend fun resetUserAchievements(username: String) {
+        // Use the achievement repository to reset achievements for this user
+        achievementRepository.resetAchievements()
+    }
+
+    // Helper method to reset user's milestones
+    private fun resetUserMilestones(username: String) {
+        // Reset the completed milestones count in UserPreferencesManager
+        userPreferencesManager.resetAchievementProgress()
+    }
+
+    // Helper method to reset user's roadmap progress
+    private fun resetUserRoadmapProgress(username: String) {
+        // This should be handled by UserPreferencesManager for the new active user
+        // No action needed beyond what's already done when setting the active user
     }
 
     override suspend fun changeUsername(oldUsername: String, password: String, newUsername: String): Boolean {
@@ -272,7 +266,16 @@ class DummyUserRepositoryImpl @Inject constructor(
         }
 
         // Update username in preferences
-        return userPreferencesManager.updateUsername(oldUsername, newUsername, password)
+        val success = userPreferencesManager.updateUsername(oldUsername, newUsername, password)
+
+        if (success) {
+            // Reset all progress for the new username to ensure a completely fresh start
+            resetUserAchievements(newUsername)
+            resetUserMilestones(newUsername)
+            resetUserRoadmapProgress(newUsername)
+        }
+
+        return success
     }
 
     override suspend fun changePassword(username: String, oldPassword: String, newPassword: String): Boolean {
@@ -294,5 +297,9 @@ class DummyUserRepositoryImpl @Inject constructor(
     override fun getCurrentUserId(): String? {
         // Use username as the user ID
         return getCurrentUsername()
+    }
+
+    override fun getAchievementRepository(): AchievementRepository? {
+        return achievementRepository
     }
 }

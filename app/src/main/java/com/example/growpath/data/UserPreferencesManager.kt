@@ -384,4 +384,123 @@ class UserPreferencesManager @Inject constructor(
         }
         return usernames
     }
+
+    // ===== Achievement Management Methods =====
+
+    // Constants for achievement-related keys
+    private object AchievementKeys {
+        const val USER_ACHIEVEMENTS = "user_achievements"
+        const val MILESTONE_COUNT = "milestone_count"
+        const val LOGIN_STREAK = "login_streak"
+        const val LAST_LOGIN_DATE = "last_login_date"
+        const val ROADMAP_COUNT = "started_roadmaps"
+        const val COMPLETED_ROADMAPS = "completed_roadmaps"
+    }
+
+    // Get the list of unlocked achievements for the current user
+    fun getUserAchievements(): Set<String> {
+        val key = getUserSpecificKey(AchievementKeys.USER_ACHIEVEMENTS)
+        return sharedPreferences.getStringSet(key, emptySet()) ?: emptySet()
+    }
+
+    // Save an achievement as unlocked
+    fun saveAchievementUnlocked(achievementId: String) {
+        val key = getUserSpecificKey(AchievementKeys.USER_ACHIEVEMENTS)
+        val currentAchievements = getUserAchievements().toMutableSet()
+        currentAchievements.add(achievementId)
+        sharedPreferences.edit().putStringSet(key, currentAchievements).apply()
+    }
+
+    // Check if an achievement is unlocked
+    fun isAchievementUnlocked(achievementId: String): Boolean {
+        return getUserAchievements().contains(achievementId)
+    }
+
+    // Get the count of completed milestones for achievements tracking
+    fun getCompletedMilestoneCount(): Int {
+        val key = getUserSpecificKey(AchievementKeys.MILESTONE_COUNT)
+        return sharedPreferences.getInt(key, 0)
+    }
+
+    // Increment the completed milestone count
+    fun incrementCompletedMilestoneCount() {
+        val key = getUserSpecificKey(AchievementKeys.MILESTONE_COUNT)
+        val currentCount = getCompletedMilestoneCount()
+        sharedPreferences.edit().putInt(key, currentCount + 1).apply()
+    }
+
+    // Get count of started roadmaps
+    fun getStartedRoadmapCount(): Int {
+        val key = getUserSpecificKey(AchievementKeys.ROADMAP_COUNT)
+        return sharedPreferences.getInt(key, 0)
+    }
+
+    // Increment the started roadmap count
+    fun incrementStartedRoadmapCount() {
+        val key = getUserSpecificKey(AchievementKeys.ROADMAP_COUNT)
+        val currentCount = getStartedRoadmapCount()
+        sharedPreferences.edit().putInt(key, currentCount + 1).apply()
+    }
+
+    // Get count of completed roadmaps
+    fun getCompletedRoadmapCount(): Int {
+        val key = getUserSpecificKey(AchievementKeys.COMPLETED_ROADMAPS)
+        return sharedPreferences.getInt(key, 0)
+    }
+
+    // Increment the completed roadmap count
+    fun incrementCompletedRoadmapCount() {
+        val key = getUserSpecificKey(AchievementKeys.COMPLETED_ROADMAPS)
+        val currentCount = getCompletedRoadmapCount()
+        sharedPreferences.edit().putInt(key, currentCount + 1).apply()
+    }
+
+    // For login streak achievement
+    fun updateLoginStreak() {
+        val streakKey = getUserSpecificKey(AchievementKeys.LOGIN_STREAK)
+        val lastLoginKey = getUserSpecificKey(AchievementKeys.LAST_LOGIN_DATE)
+
+        val today = System.currentTimeMillis() / 86400000 // Convert to days
+        val lastLoginDay = sharedPreferences.getLong(lastLoginKey, 0) / 86400000
+
+        val currentStreak = if (today - lastLoginDay <= 1) {
+            // The user logged in yesterday or today
+            sharedPreferences.getInt(streakKey, 0) + 1
+        } else {
+            // The streak is broken
+            1
+        }
+
+        sharedPreferences.edit()
+            .putInt(streakKey, currentStreak)
+            .putLong(lastLoginKey, System.currentTimeMillis())
+            .apply()
+    }
+
+    // Get the current login streak
+    fun getLoginStreak(): Int {
+        val streakKey = getUserSpecificKey(AchievementKeys.LOGIN_STREAK)
+        return sharedPreferences.getInt(streakKey, 0)
+    }
+
+    // Reset all achievement progress for a user (used when changing username)
+    fun resetAchievementProgress() {
+        if (activeUsername != null) {
+            val achievementsKey = getUserSpecificKey(AchievementKeys.USER_ACHIEVEMENTS)
+            val milestoneCountKey = getUserSpecificKey(AchievementKeys.MILESTONE_COUNT)
+            val streakKey = getUserSpecificKey(AchievementKeys.LOGIN_STREAK)
+            val lastLoginKey = getUserSpecificKey(AchievementKeys.LAST_LOGIN_DATE)
+            val roadmapCountKey = getUserSpecificKey(AchievementKeys.ROADMAP_COUNT)
+            val completedRoadmapsKey = getUserSpecificKey(AchievementKeys.COMPLETED_ROADMAPS)
+
+            sharedPreferences.edit()
+                .putStringSet(achievementsKey, emptySet())
+                .putInt(milestoneCountKey, 0)
+                .putInt(streakKey, 0)
+                .remove(lastLoginKey)
+                .putInt(roadmapCountKey, 0)
+                .putInt(completedRoadmapsKey, 0)
+                .apply()
+        }
+    }
 }

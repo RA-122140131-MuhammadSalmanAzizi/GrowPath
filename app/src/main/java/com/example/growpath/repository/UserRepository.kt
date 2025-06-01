@@ -39,4 +39,10 @@ interface UserRepository {
 
     // Get current user ID for storage operations
     fun getCurrentUserId(): String?
+
+    /**
+     * Get the achievement repository for this user.
+     * Used to connect milestones and roadmap completion to achievement tracking.
+     */
+    fun getAchievementRepository(): AchievementRepository?
 }
