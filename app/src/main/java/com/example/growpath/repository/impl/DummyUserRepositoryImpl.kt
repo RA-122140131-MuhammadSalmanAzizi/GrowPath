@@ -198,44 +198,101 @@ class DummyUserRepositoryImpl @Inject constructor(
         return _user
     }
 
-    // Implementasi metode autentikasi
+    // Authentication methods
     override suspend fun login(username: String, password: String): Boolean {
-        delay(1000) // Simulate network delay for authentication
-        return userPreferencesManager.verifyCredentials(username, password)
+        delay(500) // Simulate network delay
+
+        // Validate credentials using UserPreferencesManager
+        val isValid = userPreferencesManager.validateUserCredentials(username, password)
+
+        if (isValid) {
+            // Set active user in preferences
+            userPreferencesManager.setActiveUser(username)
+
+            // Update user model with the logged in user's data
+            val displayName = userPreferencesManager.getUserName() ?: username
+            val email = userPreferencesManager.getUserEmail() ?: "$username@example.com"
+            val photoUrl = userPreferencesManager.getUserPhotoUrl()
+            val level = userPreferencesManager.getUserLevel()
+            val xp = userPreferencesManager.getUserXP()
+
+            _user = User(
+                id = username, // Use username as ID
+                displayName = displayName,
+                email = email,
+                photoUrl = photoUrl,
+                level = level,
+                experience = xp
+            )
+        }
+
+        return isValid
+    }
+
+    override suspend fun register(username: String, password: String): Boolean {
+        delay(500) // Simulate network delay
+
+        // Make sure username is not empty and password has minimum length
+        if (username.isBlank() || password.length < 4) {
+            return false
+        }
+
+        // Try to save credentials
+        val success = userPreferencesManager.saveUserCredentials(username, password)
+        if (success) {
+            // Set active user (auto-login)
+            userPreferencesManager.setActiveUser(username)
+
+            // Create initial user data for the new user
+            userPreferencesManager.saveUserName(username) // Default display name is username
+            userPreferencesManager.saveUserEmail("$username@example.com") // Default email
+            userPreferencesManager.saveUserLevel(1) // Start at level 1
+            userPreferencesManager.saveUserXP(0) // Start with 0 XP
+
+            // Update the user model
+            _user = User(
+                id = username,
+                displayName = username,
+                email = "$username@example.com",
+                photoUrl = null,
+                level = 1,
+                experience = 0
+            )
+        }
+
+        return success
     }
 
     override suspend fun changeUsername(oldUsername: String, password: String, newUsername: String): Boolean {
-        delay(800) // Simulate network delay
+        delay(500) // Simulate network delay
 
-        // Verify current credentials first
-        if (!userPreferencesManager.verifyCredentials(oldUsername, password)) {
-            return false // Authentication failed with old credentials
+        // Check if new username is valid
+        if (newUsername.isBlank()) {
+            return false
         }
 
-        // Save the new username, keeping the same password
-        userPreferencesManager.saveLoginCredentials(newUsername, password)
-        return true
+        // Update username in preferences
+        return userPreferencesManager.updateUsername(oldUsername, newUsername, password)
     }
 
     override suspend fun changePassword(username: String, oldPassword: String, newPassword: String): Boolean {
-        delay(800) // Simulate network delay
+        delay(500) // Simulate network delay
 
-        // Verify current credentials first
-        if (!userPreferencesManager.verifyCredentials(username, oldPassword)) {
-            return false // Authentication failed with old credentials
+        // Check if new password is valid
+        if (newPassword.length < 4) {
+            return false
         }
 
-        // Save the new password, keeping the same username
-        userPreferencesManager.saveLoginCredentials(username, newPassword)
-        return true
+        // Update password in preferences
+        return userPreferencesManager.updatePassword(username, oldPassword, newPassword)
     }
 
     override fun getCurrentUsername(): String? {
-        return userPreferencesManager.getLoginUsername()
+        return userPreferencesManager.getCurrentUsername()
     }
 
     override fun getCurrentUserId(): String? {
-        // Untuk implementasi dummy, kita bisa mengembalikan ID dari user yang sedang aktif
-        return _user.id
+        // Use username as the user ID
+        return getCurrentUsername()
     }
 }

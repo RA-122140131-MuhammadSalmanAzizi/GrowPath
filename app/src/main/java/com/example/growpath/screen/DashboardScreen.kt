@@ -99,7 +99,9 @@ fun DashboardScreen(
                     BadgedBox(
                         badge = {
                             if (notificationsState.unreadCount > 0) {
-                                Badge {
+                                Badge(
+                                    modifier = Modifier.offset(x = (-6).dp, y = 6.dp) // Geser posisi badge agar tidak terpotong
+                                ) {
                                     Text(
                                         text = if (notificationsState.unreadCount > 9) "9+" else notificationsState.unreadCount.toString()
                                     )
@@ -107,16 +109,19 @@ fun DashboardScreen(
                             }
                         }
                     ) {
-                        IconButton(onClick = { navController?.navigate(NavGraph.NOTIFICATIONS) }) {
+                        IconButton(
+                            onClick = {
+                                navController?.navigate(NavGraph.NOTIFICATIONS)
+                                // Tidak menandai notifikasi sebagai telah dibaca saat mengklik ikon
+                                // Dibaca hanya setelah user melihat atau klik tombol "Mark All as Read"
+                            },
+                            modifier = Modifier.padding(end = 8.dp) // Tambahkan padding agar tidak terlalu pinggir
+                        ) {
                             Icon(
                                 Icons.Outlined.Notifications,
                                 contentDescription = "Notifications"
                             )
                         }
-                    }
-
-                    IconButton(onClick = onProfileClick) {
-                        Icon(Icons.Default.Person, contentDescription = "Profile")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -479,8 +484,7 @@ fun UserProgressCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
-            .clickable(onClick = onProfileClick),
+            .padding(16.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
         Box(

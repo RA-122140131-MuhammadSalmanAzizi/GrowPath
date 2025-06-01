@@ -96,6 +96,29 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    // Register new user
+    fun register(username: String, password: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+
+            try {
+                val success = userRepository.register(username, password)
+                if (success) {
+                    // Auto login after successful registration
+                    userRepository.login(username, password)
+                    onSuccess()
+                } else {
+                    _errorMessage.value = "Username already exists. Please try another username."
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Registration failed: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     // Clear error message
     fun clearError() {
         _errorMessage.value = null

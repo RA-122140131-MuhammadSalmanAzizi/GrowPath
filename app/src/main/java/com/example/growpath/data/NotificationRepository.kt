@@ -1,6 +1,10 @@
 package com.example.growpath.data
 
+import android.content.Context
+import android.content.SharedPreferences
+import android.util.Log
 import com.example.growpath.screen.Notification
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +17,15 @@ import javax.inject.Singleton
  * Singleton repository that manages notifications across the app
  */
 @Singleton
-class NotificationRepository @Inject constructor() {
+class NotificationRepository @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
+    private val PREFS_NAME = "notification_prefs"
+    private val PREF_READ_NOTIFICATIONS = "read_notifications"
+
+    private val sharedPreferences: SharedPreferences = context.getSharedPreferences(
+        PREFS_NAME, Context.MODE_PRIVATE
+    )
 
     // Keep a single source of truth for notifications
     private val _notificationsFlow = MutableStateFlow<List<Notification>>(emptyList())
@@ -22,6 +34,11 @@ class NotificationRepository @Inject constructor() {
     // Track read status separately for immediate UI updates
     private val _unreadCountFlow = MutableStateFlow(0)
     val unreadCountFlow: StateFlow<Int> = _unreadCountFlow.asStateFlow()
+
+    // Menyimpan set ID notifikasi yang telah dibaca
+    private val readNotificationIds: MutableSet<String> = sharedPreferences
+        .getStringSet(PREF_READ_NOTIFICATIONS, mutableSetOf<String>())?.toMutableSet()
+            ?: mutableSetOf()
 
     init {
         // Initialize with sample notifications
@@ -39,7 +56,7 @@ class NotificationRepository @Inject constructor() {
                 title = "New Learning Modules Available",
                 message = "Check out our latest learning modules with practical exercises and real-world examples",
                 timestamp = Date(currentTime),
-                isRead = false,
+                isRead = readNotificationIds.contains("module-update-1"), // Cek status dibaca dari SharedPreferences
                 detailedContent = """
                     # New Learning Modules Available
                     
@@ -79,7 +96,7 @@ class NotificationRepository @Inject constructor() {
                 title = "GrowPath App Update",
                 message = "We've fixed bugs and added new features to improve your learning experience",
                 timestamp = Date(currentTime - 3 * day),
-                isRead = false,
+                isRead = readNotificationIds.contains("app-update-1"), // Cek status dibaca dari SharedPreferences
                 detailedContent = """
                     # GrowPath App Update (v2.4.1)
                     
@@ -99,37 +116,82 @@ class NotificationRepository @Inject constructor() {
                     - **Offline Mode**: Continue learning even without an internet connection
                     - **Performance Optimizations**: Faster loading times and smoother animations
                     
-                    ## Coming Soon
-                    
-                    - Group learning features
-                    - Custom learning path creation
-                    - Advanced analytics for tracking your progress
-                    
-                    Thanks for using GrowPath! We appreciate your feedback as we continue to improve.
                 """
             )
+            // Tambahkan notifikasi lain sesuai kebutuhan
         )
 
         _notificationsFlow.value = sampleNotifications
-        updateUnreadCount()
+
+        // Hitung jumlah notifikasi yang belum dibaca berdasarkan data SharedPreferences
+        val unreadCount = sampleNotifications.count { !it.isRead }
+        _unreadCountFlow.value = unreadCount
+
+        Log.d("NotificationRepository", "Loaded notifications: ${sampleNotifications.size}, unread: $unreadCount")
+    }
+
+    fun addNotification(title: String, message: String) {
+        val notification = Notification(
+            id = System.currentTimeMillis().toString(),
+            title = title,
+            message = message,
+            timestamp = Date(),
+            isRead = false
+        )
+
+        _notificationsFlow.update { currentList ->
+            val updatedList = currentList + notification
+            updatedList
+        }
+
+        _unreadCountFlow.update { it + 1 }
     }
 
     fun markAsRead(notificationId: String) {
-        val updatedNotifications = _notificationsFlow.value.map { notification ->
-            if (notification.id == notificationId) {
-                notification.copy(isRead = true)
-            } else {
-                notification
+        // Update notification list
+        _notificationsFlow.update { currentList ->
+            currentList.map { notification ->
+                if (notification.id == notificationId && !notification.isRead) {
+                    // Simpan ID notifikasi yang telah dibaca ke SharedPreferences
+                    readNotificationIds.add(notificationId)
+                    saveReadNotificationIds()
+
+                    // Update unread counter
+                    _unreadCountFlow.update { it - 1 }
+
+                    notification.copy(isRead = true)
+                } else {
+                    notification
+                }
             }
         }
-        _notificationsFlow.value = updatedNotifications
-        updateUnreadCount()
     }
 
     fun markAllAsRead() {
-        val readNotifications = _notificationsFlow.value.map { it.copy(isRead = true) }
-        _notificationsFlow.value = readNotifications
-        _unreadCountFlow.value = 0
+        val currentList = _notificationsFlow.value
+        val unreadNotifications = currentList.filter { !it.isRead }
+
+        if (unreadNotifications.isNotEmpty()) {
+            // Tambahkan semua ID notifikasi yang belum dibaca ke dalam set
+            unreadNotifications.forEach {
+                readNotificationIds.add(it.id)
+            }
+
+            // Simpan set yang diperbarui ke SharedPreferences
+            saveReadNotificationIds()
+
+            // Update notification list
+            _notificationsFlow.update { currentList ->
+                currentList.map { notification ->
+                    notification.copy(isRead = true)
+                }
+            }
+
+            // Reset unread counter
+            _unreadCountFlow.value = 0
+
+            Log.d("NotificationRepository", "Marked all notifications as read")
+        }
     }
 
     fun clearNotifications() {
@@ -137,17 +199,15 @@ class NotificationRepository @Inject constructor() {
         _unreadCountFlow.value = 0
     }
 
-    fun addNotification(title: String, message: String) {
-        val newNotification = Notification(
-            title = title,
-            message = message,
-            timestamp = Date()
-        )
-        _notificationsFlow.update { currentList -> currentList + newNotification }
-        updateUnreadCount()
+    private fun saveReadNotificationIds() {
+        sharedPreferences.edit().putStringSet(PREF_READ_NOTIFICATIONS, readNotificationIds).apply()
+        Log.d("NotificationRepository", "Saved read notification IDs: $readNotificationIds")
     }
 
-    private fun updateUnreadCount() {
-        _unreadCountFlow.value = _notificationsFlow.value.count { !it.isRead }
+    // Fungsi untuk mengubah semua notifikasi menjadi belum dibaca (untuk debugging)
+    fun resetAllReadStatus() {
+        readNotificationIds.clear()
+        saveReadNotificationIds()
+        loadSampleNotifications()
     }
 }

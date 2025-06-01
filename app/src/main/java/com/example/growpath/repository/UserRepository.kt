@@ -32,6 +32,9 @@ interface UserRepository {
 
     suspend fun changePassword(username: String, oldPassword: String, newPassword: String): Boolean
 
+    // Register a new user
+    suspend fun register(username: String, password: String): Boolean
+
     fun getCurrentUsername(): String?
 
     // Get current user ID for storage operations
